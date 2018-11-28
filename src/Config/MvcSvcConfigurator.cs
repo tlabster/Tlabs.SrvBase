@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Http;
 using Tlabs.Identity;
 using Tlabs.Server.Identity;
+using System.Reflection;
 
 namespace Tlabs.Config {
 
@@ -48,7 +49,9 @@ namespace Tlabs.Config {
           config.Filters.Add(new BriefTemplAuthorizationFilter(policy));
           // config.Filters.Add(new ProtectedInsureesFilter());
         }
-      }).AddJsonOptions(configureJsonOptions);
+      }).AddJsonOptions(configureJsonOptions)
+        .AddApplicationPart(Assembly.GetEntryAssembly());
+
       log.LogInformation("ASP.NET MVC framework services added.");
     }
 
