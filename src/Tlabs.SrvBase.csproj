@@ -3,12 +3,14 @@
   <PropertyGroup>
     <VersionPrefix>1.0.0-alpha</VersionPrefix>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-<!--
-    <TargetFramework>netstandard2.0</TargetFramework>
--->
     <OutputType>Library</OutputType>
     <RuntimeFrameworkVersion>2.1.0</RuntimeFrameworkVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <Authors>Tlabs</Authors>
+    <PackageLicenseUrl>https://bitbucket.org/tlabster/tlabs.srvbase/src/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://bitbucket.org/tlabster/tlabs.srvbase</PackageProjectUrl>
+
   </PropertyGroup>
 
   <ItemGroup>
