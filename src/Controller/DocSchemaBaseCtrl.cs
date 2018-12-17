@@ -78,7 +78,7 @@ namespace Tlabs.Server.Controller {
         catch (Exception e) {
           log.LogError(0, e, "Schema upload failed.");
           resp.StatusCode= 400;
-          var vse= e as CodeSyntaxException;
+          var vse= e as Dynamic.ExpressionSyntaxException;
           if (null != vse && null != vse.SyntaxErrors) foreach(var error in vse.SyntaxErrors) {
             respWr.WriteLine(error.Message);
           }
