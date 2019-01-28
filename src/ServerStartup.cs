@@ -28,7 +28,10 @@ namespace Tlabs.Server {
       var logFactory= createLogFactory(hostSettings);
       return new WebHostBuilder()
         // .UseLoggerFactory(createLogFactory(hostSettings))
-        .ConfigureServices(services => services.AddSingleton<ILoggerFactory>(logFactory))
+        .ConfigureServices(services => {
+          services.AddSingleton<ILoggerFactory>(logFactory);
+          services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+        })
         .UseContentRoot(App.ContentRoot)
         .ApplyConfigurators(hostSettings, "configurator")
         .UseStartup<ServerStartup>();
