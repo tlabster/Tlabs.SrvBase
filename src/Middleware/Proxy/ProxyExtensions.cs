@@ -32,7 +32,7 @@ namespace Tlabs.Middleware.Proxy {
                                               .SelectMany(t => t.GetMethods())
                                               .Where(m => m.GetCustomAttributes(typeof(ProxyRouteAttribute), false).Length > 0);
 
-      var proxyEndpoints= methods.Select<MethodInfo, ProxyEndpoint>(method => {
+      var proxyEndpoints= methods.Select<MethodInfo, IProxyEndpoint>(method => {
         var name= method.Name;
         var attribute= method.GetCustomAttributes(typeof(ProxyRouteAttribute), false).Single() as ProxyRouteAttribute;
         var parameters= method.GetParameters();
@@ -65,7 +65,7 @@ namespace Tlabs.Middleware.Proxy {
 
     /// <summary>Use middleware to proxy all <paramref name="proxyEndpoints"/>.</summary>
     public static void UseMvcProxy(this IApplicationBuilder app,
-                                   IEnumerable<ProxyEndpoint> proxyEndpoints)
+                                   IEnumerable<IProxyEndpoint> proxyEndpoints)
     {
       var http= app.ApplicationServices.GetRequiredService<HttpClient>();
       app.UseRouter(router => {

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +13,8 @@ using Newtonsoft.Json.Linq;
 
 using Xunit;
 using Xunit.Abstractions;
+
+using Tlabs.Config;
 
 namespace Tlabs.Middleware.Proxy.Test {
 
@@ -50,31 +54,15 @@ namespace Tlabs.Middleware.Proxy.Test {
       public void ConfigureServices(IServiceCollection services) {
         services.AddRouting();
         services.AddMvc();
-        services.AddSingleton<HttpClient>(); //(svcProv =>
+        services.AddApiClient();
       }
 
       public void Configure(IApplicationBuilder app, IHostingEnvironment env) {
-        app.UseMvcProxy(new ProxyEndpoint[] {
-          new ProxyEndpoint {
-            EndpointTemplate= "V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd}",
-            ProxyUriBuilder= (context, args) => $"https://sandbox.prime-cloud.com/V{args["svcVers"]}/{args["svcCat"]}/Service/{args["svcName"]}.svc/{args["svcEnd"]}"
-          }
-        });
 
-#if false
-        app.UseProxy("api/comments/contextandargstotask/{postId}", (context, args) => {
-          context.GetHashCode();
-          return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
+        var proxyCfg= new ApiProxyConfigurator(new Dictionary<string, string> {
+          ["someRoute"]= "V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd} ::> https://sandbox.prime-cloud.com/V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd}"
         });
-
-        app.UseProxy("api/comments/argstotask/{postId}", (args) => {
-          return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
-        });
-
-        app.UseProxy("api/comments/emptytotask", () => {
-          return $"https://jsonplaceholder.typicode.com/comments/1";
-        });
-#endif
+        proxyCfg.AddTo(app, null);
 
         app.UseMvc();
 

@@ -6,13 +6,23 @@ using Microsoft.AspNetCore.Http;
 namespace Tlabs.Middleware.Proxy {
 
   ///<summary>Proxy endpoint definition.</summary>
-  public struct ProxyEndpoint {
+  public interface IProxyEndpoint {
     ///<summary>Endpoint route template.</summary>
-    public string EndpointTemplate;
+    string EndpointTemplate { get; }
     ///<summary>Proxy URI builder.</summary>
-    public Func<HttpContext, IDictionary<string, object>, string> ProxyUriBuilder;
+    Func<HttpContext, IDictionary<string, object>, string> ProxyUriBuilder { get; }
     ///<summary>Failure handler (optional).</summary>
-    public Func<HttpContext, Exception, Task> OnFailure;
-
+    Func<HttpContext, Exception, Task> OnFailure { get; }
   }
+
+  ///<summary>Proxy endpoint implementation.</summary>
+  public struct ProxyEndpoint : IProxyEndpoint {
+    ///<inherit/>
+    public string EndpointTemplate { get; set; }
+    ///<inherit/>
+    public Func<HttpContext, IDictionary<string, object>, string> ProxyUriBuilder { get; set; }
+    ///<inherit/>
+    public Func<HttpContext, Exception, Task> OnFailure { get; set; }
+  }
+
 }
