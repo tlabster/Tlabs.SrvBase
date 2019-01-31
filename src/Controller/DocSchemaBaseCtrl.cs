@@ -18,10 +18,10 @@ namespace Tlabs.Server.Controller {
     private IDocSchemaRepo repo;
     private ILogger<DocSchemaBaseCtrl> log;
     private ISerializer<DocumentSchema> schemaSeri;
-    private DocProcessorRepo docProcRepo;
+    private IDocProcessorRepo docProcRepo;
 
     ///<summary>Ctor from <paramref name="repo"/>, <paramref name="log"/> and <paramref name="schemaSeri"/>.</summary>
-    public DocSchemaBaseCtrl(IDocSchemaRepo repo, ILogger<DocSchemaBaseCtrl> log, ISerializer<DocumentSchema> schemaSeri, DocProcessorRepo docProcRepo) {
+    public DocSchemaBaseCtrl(IDocSchemaRepo repo, ILogger<DocSchemaBaseCtrl> log, ISerializer<DocumentSchema> schemaSeri, IDocProcessorRepo docProcRepo) {
       this.repo= repo;
       this.log= log;
       this.schemaSeri= schemaSeri;
