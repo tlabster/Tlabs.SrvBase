@@ -60,9 +60,11 @@ namespace Tlabs.Middleware.Proxy.Test {
       public void Configure(IApplicationBuilder app, IHostingEnvironment env) {
 
         var proxyCfg= new ApiProxyConfigurator(new Dictionary<string, string> {
-          ["someRoute"]= "V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd} ::> https://sandbox.prime-cloud.com/V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd}"
+          /** Match all PC APIs but Member & Promotion
+           */
+          ["someRoute"]= "V{svcVers}/{svcCat}/Service/{svcName:regex(^(?!Member|Promotion).+$)}.svc/{svcEnd} ::> https://sandbox.prime-cloud.com/V{svcVers}/{svcCat}/Service/{svcName}.svc/{svcEnd}"
         });
-        proxyCfg.AddTo(app, null);
+        proxyCfg.AddTo(new MiddlewareContext { AppBuilder= app }, null);
 
         app.UseMvc();
 
