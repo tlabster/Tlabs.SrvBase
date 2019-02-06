@@ -18,10 +18,8 @@ using System.Text.RegularExpressions;
 namespace Tlabs.Config {
 
   ///<summary>Configures an api proxy.</summary>
-  public partial class ApiProxyConfigurator : IConfigurator<IApplicationBuilder> {
+  public partial class ApiProxyConfigurator : IConfigurator<MiddlewareContext> {
     IDictionary<string, string> config;
-    string routeEndpoint;
-    string proxyUri;
     ILogger log= App.Logger<ApiProxyConfigurator>();
 
     ///<summary>Default ctor.</summary>
@@ -33,9 +31,10 @@ namespace Tlabs.Config {
     }
 
     ///<inherit/>
-    public void AddTo(IApplicationBuilder app, IConfiguration cfg) {
+    public void AddTo(MiddlewareContext ctx, IConfiguration cfg) {
       var proxEndpoints= config.Select(pair => new ApiProxyEndpoint(pair.Value));
-      app.UseMvcProxy(proxEndpoints);
+      ctx.AppBuilder.UseMvcProxy(proxEndpoints);
+      log.LogInformation("{count} MVC proxy routes added to the pipeline.");
     }
 
     class ApiProxyEndpoint : IProxyEndpoint {
