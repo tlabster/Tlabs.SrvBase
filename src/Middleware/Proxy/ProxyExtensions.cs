@@ -29,8 +29,8 @@ namespace Tlabs.Middleware.Proxy {
     /// <summary>Use middleware to proxy all endpoints that match any routes defined with static methods marked with a [<see cref="ProxyRouteAttribute">ProxyRoute</see>] attribute.</summary>
     public static void UseMvcProxy(this IApplicationBuilder app) {
       var methods= GetReferencingAssemblies().SelectMany(a => a.GetTypes())
-                                              .SelectMany(t => t.GetMethods())
-                                              .Where(m => m.GetCustomAttributes(typeof(ProxyRouteAttribute), false).Length > 0);
+                                             .SelectMany(t => t.GetMethods())
+                                             .Where(m => m.GetCustomAttributes(typeof(ProxyRouteAttribute), false).Length > 0);
 
       var proxyEndpoints= methods.Select<MethodInfo, IProxyEndpoint>(method => {
         var name= method.Name;
@@ -74,10 +74,12 @@ namespace Tlabs.Middleware.Proxy {
             proxyApp.Use(async (httpCtx, next) => {
               string proxUri= "??";
               try {
-                proxUri= proxy.ProxyUriBuilder(httpCtx, httpCtx.GetRouteData().Values);
-                var proxResp= httpCtx.TransferProxyMessageAsync(http, proxUri);
-                await next();
-                await httpCtx.ReturnProxyResponse(proxResp);
+                if (null != (proxUri= proxy.ProxyUriBuilder(httpCtx, httpCtx.GetRouteData().Values))) {
+                  var proxResp= httpCtx.TransferProxyMessageAsync(http, proxUri);
+                  await next();
+                  await httpCtx.ReturnProxyResponse(proxResp);
+                }
+                else await next();
               }
               catch (Exception e) {
                 if (proxy.OnFailure != null) {
