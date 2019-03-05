@@ -67,7 +67,7 @@ namespace Tlabs.Server.Controller {
 
           /*Check validation syntax and calc. model:
            */
-          docProcRepo.CreateDocumentProcessor<AbstractDocument>(schema).Dispose();
+          docProcRepo.CreateDocumentProcessor<AbstractDocument>(schema);
 
           DocumentSchema oldSchema;
           if (repo.TryGetByTypeId(schema.TypeId, out oldSchema))
