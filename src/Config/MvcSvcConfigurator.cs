@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Http;
 
 using Newtonsoft.Json;
 
 using Tlabs.Data.Serialize.Json;
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Tlabs.Data.Entity;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Net;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.AspNetCore.Http;
 using Tlabs.Identity;
 using Tlabs.Server.Identity;
-using System.Reflection;
 
 namespace Tlabs.Config {
 
@@ -39,15 +40,12 @@ namespace Tlabs.Config {
       var log= App.Logger<MvcSvcConfigurator>();
 
       // Add ASP.NET MVC framework services.
-      string authActiveStr;
-      bool authActive;
-      config.TryGetValue("authentication", out authActiveStr);
-      Boolean.TryParse(authActiveStr, out authActive);
-      services.AddMvc(config => {
-        if (authActive) {
-          var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
-          config.Filters.Add(new BriefTemplAuthorizationFilter(policy));
-          // config.Filters.Add(new ProtectedInsureesFilter());
+      services.AddMvc(opt => {
+        var filterKeys= config.Keys.Where(k => k.StartsWith("filter") || k.IndexOf("_filter") >=0).OrderBy(k => k);
+        foreach(var filter in filterKeys) {
+          var typeName= config[filter];
+          opt.Filters.AddService(Misc.Safe.LoadType(typeName, filter));
+          log.LogInformation("MVC {f} ({t}) added.", filter, typeName);
         }
       }).AddJsonOptions(configureJsonOptions)
         .AddApplicationPart(Assembly.GetEntryAssembly());
