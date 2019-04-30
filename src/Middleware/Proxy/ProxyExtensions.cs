@@ -90,6 +90,9 @@ namespace Tlabs.Middleware.Proxy {
                 httpCtx.Response.StatusCode= 500;
                 await httpCtx.Response.WriteAsync($"Request could not be proxied to: '{proxUri}'.\n\n{e.Message}\n\n{e.StackTrace}.");
               }
+              finally {
+                httpCtx.DisposeProxyMessage();
+              }
             });
             proxyApp.UseMvc();
           });

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -12,16 +14,22 @@ namespace Tlabs.Middleware.Proxy {
     const string PROX_MSG= nameof(Tlabs.Middleware.Proxy) + ".reqMsg";
     const string PROX_RESP= nameof(Tlabs.Middleware.Proxy) + ".respMsgTsk";
 
-    internal static HttpRequestMessage ToRequestMessage(this HttpRequest req, string uriString= null) {
-      var reqUri= new Uri(uriString ?? req.GetEncodedUrl());
+    internal static async Task<HttpRequestMessage> ToRequestMessage(this HttpRequest req, string uriString, CancellationToken ct) {
+      uriString=   string.IsNullOrEmpty(uriString)
+                 ? req.GetEncodedUrl()
+                 : uriString + req.QueryString.ToUriComponent();
+      var reqUri= new Uri(uriString);
       var reqMsg= new HttpRequestMessage(new HttpMethod(req.Method), reqUri);
       var reqMethod= req.Method;
       if (   !HttpMethods.IsGet(reqMethod)
           && !HttpMethods.IsHead(reqMethod)
           && !HttpMethods.IsDelete(reqMethod)
-          && !HttpMethods.IsTrace(reqMethod))
-        reqMsg.Content= new StreamContent(req.Body);
-
+          && !HttpMethods.IsTrace(reqMethod)) {
+        var memStrm= new MemoryStream((int)(req.ContentLength ?? 4096));
+        await req.Body.CopyToAsync(memStrm, ct);
+        memStrm.Position= 0;
+        reqMsg.Content= new StreamContent(memStrm);
+      }
       // Copy the request headers.
       foreach (var header in req.Headers)
         if (!reqMsg.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
@@ -37,8 +45,16 @@ namespace Tlabs.Middleware.Proxy {
     ///<summary>Returns the (pending) proxied <see cref="Task{HttpResponseMessage}"/> or <c>null</c> if no route was proxied.</summary>
     public static Task<HttpResponseMessage> GetProxyResponseMessage(this HttpContext ctx) => ctx.Items[PROX_RESP] as Task<HttpResponseMessage>;
 
-    internal static HttpRequestMessage CreateProxyRequest(this HttpContext ctx, string uriString = null) {
-      var reqMsg= ctx.Request.ToRequestMessage(uriString);
+    ///<summary>Dispose off any proxy messages from the <see cref="HttpContext"/>.</summary>
+    public static void DisposeProxyMessage(this HttpContext ctx) {
+      ctx.GetProxyRequestMessage()?.Dispose();
+      var respTsk= ctx.GetProxyResponseMessage();
+      if (null != respTsk && respTsk.IsCompletedSuccessfully)
+        respTsk.Result.Dispose();
+    }
+
+    internal static async Task<HttpRequestMessage> CreateProxyRequest(this HttpContext ctx, string uriString= null) {
+      var reqMsg= await ctx.Request.ToRequestMessage(uriString, ctx.RequestAborted);
       ctx.Items[PROX_MSG]= reqMsg;
       return reqMsg;
     }
@@ -55,12 +71,12 @@ namespace Tlabs.Middleware.Proxy {
       await respMsg.Content.CopyToAsync(resp.Body);
     }
 
-    internal static Task<HttpResponseMessage> TransferProxyMessageAsync(this HttpContext ctx, HttpClient http, string uriString) {
-      var proxRespTsk= http.SendAsync(ctx.CreateProxyRequest(uriString),
+    internal static async Task<HttpResponseMessage> TransferProxyMessageAsync(this HttpContext ctx, HttpClient http, string uriString) {
+      var proxRespTsk= http.SendAsync(await ctx.CreateProxyRequest(uriString),
                                       HttpCompletionOption.ResponseHeadersRead,
                                       ctx.RequestAborted);
       ctx.Items[PROX_RESP]= proxRespTsk;
-      return proxRespTsk;
+      return await proxRespTsk;
     }
 
     internal static async Task ReturnProxyResponse(this HttpContext ctx, Task<HttpResponseMessage> respMsg= null) {
