@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Newtonsoft.Json.Linq;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -20,14 +19,21 @@ namespace Tlabs.Middleware.Proxy.Test {
 
   public class TestController : Controller {
 
-    [HttpGet("V3/BasketPoint/Service/BasketPoint.svc/BasketPoint")]
+    [HttpPost("V3/BasketPoint/Service/BasketPoint.svc/BasketPoint")]
     public ActionResult GetBasketPoints() {
       Console.WriteLine("MVC controller: V3/BasketPoint/Service/BasketPoint.svc/BasketPoint");
+      var req= HttpContext.GetProxyRequestMessage();
+      if (null == req)
+        return StatusCode(500,"No 'proxyMsg' set with HttpContext");
 
-      if (null == HttpContext.GetProxyRequestMessage())
-        throw new InvalidOperationException("No 'proxyMsg' set with HttpContext");
+      var q= HttpUtility.ParseQueryString(req.RequestUri.Query);
+      if (q["param"] != "test") return StatusCode(400, "param missing in query string");
+
+      var str= req.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+      if ("{ }" != str) return StatusCode(400, "Bad request content.");
+
       if (null == HttpContext.GetProxyResponseMessage())
-        throw new InvalidOperationException("No 'proxyResp' set with HttpContext");
+        return StatusCode(500, "No 'proxyResp' set with HttpContext");
 
       return StatusCode(418, "Teapot response from basket controller");
     }
@@ -107,7 +113,10 @@ namespace Tlabs.Middleware.Proxy.Test {
 
     [Fact]
     public async Task ProxyBasketApi() {
-      var response= await testFixture.Client.GetAsync("V3/BasketPoint/Service/BasketPoint.svc/BasketPoint");
+      var req= new HttpRequestMessage(HttpMethod.Post, "V3/BasketPoint/Service/BasketPoint.svc/BasketPoint?param=test&other=more");
+      req.Content= new StringContent("{ }", System.Text.Encoding.UTF8, "application/json");
+      var response= await testFixture.Client.SendAsync(req);
+      // var response= await testFixture.Client.GetAsync("V3/BasketPoint/Service/BasketPoint.svc/BasketPoint?param=test&other=more");
       Assert.Equal(418, (int)response.StatusCode);  //handled by TestController.GetBasketPoints() ??
 
       var respStr= await response.Content.ReadAsStringAsync();

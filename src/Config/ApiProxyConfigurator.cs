@@ -32,9 +32,9 @@ namespace Tlabs.Config {
 
     ///<inherit/>
     public void AddTo(MiddlewareContext ctx, IConfiguration cfg) {
-      var proxEndpoints= config.Select(pair => new ApiProxyEndpoint(pair.Value));
+      var proxEndpoints= config.Select(pair => new ApiProxyEndpoint(pair.Value)).ToList();
       ctx.AppBuilder.UseMvcProxy(proxEndpoints);
-      log.LogInformation("{count} MVC proxy routes added to the pipeline.");
+      log.LogInformation("{count} MVC proxy routes added to the pipeline.", proxEndpoints.Count);
     }
 
     class ApiProxyEndpoint : IProxyEndpoint {
