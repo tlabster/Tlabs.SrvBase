@@ -49,31 +49,20 @@ namespace Tlabs.Server.Controller {
             respWr.WriteLine(msg);
           }
 #endif
-          var schema= schemaSeri.LoadObj(xml_file.OpenReadStream());
+          var defStreams= new SchemaDefinitionStreams {
+            Schema= xml_file.OpenReadStream(),
+            CalcModel= xls_file?.OpenReadStream(),
+            Form= html_file?.OpenReadStream(),
+            Style= css_file?.OpenReadStream()
+          };
 
-          using(var bin= new BinaryReader(html_file.OpenReadStream()))
-            schema.FormData= bin.ReadBytes((int)html_file.Length);
-          using (var bin= new BinaryReader(css_file.OpenReadStream()))
-            schema.FormStyleData= bin.ReadBytes((int)css_file.Length);
-          if (null != xls_file) {
+          if (null != defStreams.CalcModel) {
+            //check for possible base64 encoding
             if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.InvariantCultureIgnoreCase))
-              using (var rd= new StreamReader(xls_file.OpenReadStream())) {
-                schema.CalcModelData= Convert.FromBase64String(rd.ReadToEnd());
-            }
-            else using (var bin = new BinaryReader(xls_file.OpenReadStream())) {
-              schema.CalcModelData= bin.ReadBytes((int)xls_file.Length);
-            }
+              using (var rd= new StreamReader(defStreams.CalcModel))
+                defStreams.CalcModel= new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
           }
-
-          /*Check validation syntax and calc. model:
-           */
-          docProcRepo.CreateDocumentProcessor<AbstractDocument>(schema);
-
-          DocumentSchema oldSchema;
-          if (repo.TryGetByTypeId(schema.TypeId, out oldSchema))
-            repo.Delete(oldSchema);
-          repo.Insert(schema);
-          repo.Store.CommitChanges();
+          repo.CreateFromStreams<AbstractDocument>(defStreams, docProcRepo);
         }
         catch (Exception e) {
           log.LogError(0, e, "Schema upload failed.");
