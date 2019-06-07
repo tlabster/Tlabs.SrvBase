@@ -44,8 +44,10 @@ namespace Tlabs.Config {
         var filterKeys= config.Keys.Where(k => k.StartsWith("filter") || k.IndexOf("_filter") >=0).OrderBy(k => k);
         foreach(var filter in filterKeys) {
           var typeName= config[filter];
-          opt.Filters.AddService(Misc.Safe.LoadType(typeName, filter));
-          log.LogInformation("MVC {f} ({t}) added.", filter, typeName);
+          if (!string.IsNullOrEmpty(typeName)) {
+            opt.Filters.AddService(Misc.Safe.LoadType(typeName, filter));
+            log.LogInformation("MVC {f} ({t}) added.", filter, typeName);
+          }
         }
       }).AddJsonOptions(configureJsonOptions)
         .AddApplicationPart(Assembly.GetEntryAssembly());
