@@ -50,9 +50,29 @@ namespace Tlabs.Server.Model {
     public M data { get; protected set; }
   }
 
+  ///<summary>Cover for the result of a data query for model objects.</summary>
+  public class QueryCover<M> : AbstractCover {
+    ///<summary>Default ctor called from derived class ctors.</summary>
+    protected QueryCover() { }
+    ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
+    public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string> provideErrMessage= null) {
+      try {
+        this.data= queryResult(this);
+      }
+      catch (Exception e) {
+        this.error=   null != provideErrMessage
+                    ? provideErrMessage(e)
+                    : $"Failed to return {typeof(M).Name}: ({e.Message}).";
+        log.LogError(0, e, this.error);
+      }
+    }
+    ///<summary>The (covered) result of the query as enumeration.</summary>
+    public virtual IEnumerable<M> data { get; protected set; }
+  }
+
 
   ///<summary>Cover for the result of a <see cref="IQueryable{T}"/> returned as a projected <see cref="IEnumerable{M}"/>.</summary>
-  public class QueryCover<T, M> : AbstractCover {
+  public class QueryCover<T, M> : QueryCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
     protected QueryCover() { }
     ///<summary>Ctor from <paramref name="query"/> and <paramref name="selector"/>.</summary>
@@ -60,9 +80,6 @@ namespace Tlabs.Server.Model {
       var p= new QueryProjector<T, M>(query, selector);
       execQuery(p);
     }
-
-    ///<summary>The (covered) result of the query as enumeration.</summary>
-    public IEnumerable<M> data { get; private set; }
 
     /* Note:
      * This deliberately is not being virtual to allow for calling this safely from any ctor.
@@ -114,6 +131,27 @@ namespace Tlabs.Server.Model {
     ///<summary>The (covered) concatenated result of the query(s) as enumeration.</summary>
     public IEnumerable<T> data { get { return dataEnum; } }
 
+  }
+
+  ///<summary>Cover for the result of a a page limited data query for model objects.</summary>
+  public class PagedQueryCover<M> : QueryCover<M> {
+    ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
+    public PagedQueryCover(Func<PagedQueryCover<M>, Data.Model.IResultList<M>> queryResult, Func<Exception, string> provideErrMessage = null) {
+      try {
+        var res= queryResult(this);
+        this.total= res.Total;
+        this.data= res.Data;
+      }
+      catch (Exception e) {
+        this.error=   null != provideErrMessage
+                    ? provideErrMessage(e)
+                    : $"Failed to return {typeof(M).Name}: ({e.Message}).";
+        log.LogError(0, e, this.error);
+      }
+    }
+
+    ///<summary>Total (unlimited) result count.</summary>
+    public int total { get; set; }
   }
 
   ///<summary>Cover for the result of a <see cref="IQueryable{T}"/> returned as a page limited projection into <see cref="IEnumerable{M}"/>.</summary>

@@ -64,12 +64,18 @@ namespace Tlabs.Server.Model {
       get => filterStr;
       set => this.filterList= (IList<Filter>)JSON.LoadObj(filterStr= value, typeof(IList<Filter>));
     }
-    
+
+    ///<summary>List of <see cref="Filter"/>(s).</summary>
+    public IList<Filter> FilterList => filterList;
+
     ///<summary>sort string with format: <c>[{"property":"fieldName","direction":"ASC"}]</c>.</summary>
     public string sort {
       get { return sorterStr; }
       set => this.sorterList= (IList<Sorter>)JSON.LoadObj(sorterStr= value, typeof(IList<Sorter>));
     }
+
+    ///<summary>List of <see cref="Sorter"/>(s).</summary>
+    public IList<Sorter> SorterList  => sorterList;
 
     /// <summary>Filters that are enforced</summary>
     public Dictionary<string, string> EnforcedFilters { get; set; }
@@ -105,15 +111,7 @@ namespace Tlabs.Server.Model {
       ///<summary>Field/property name.</summary>
       public string property { get; set; }
       ///<summary>Value to compare.</summary>
-      public string value { get; set; }
-      ///<summary>Value to compare as integer.</summary>
-      public int intValue {
-        get {
-          int intVal;
-          Int32.TryParse(this.value, out intVal);
-          return intVal;
-        }
-      }
+      public IConvertible value { get; set; }
       ///<summary>Compare operator.</summary>
       public string @operator { get; set; }
     }
