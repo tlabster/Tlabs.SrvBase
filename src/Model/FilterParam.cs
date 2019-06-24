@@ -50,14 +50,16 @@ namespace Tlabs.Server.Model {
   ///</para>
   ///</remarks>
   public class FilterParam<TEntity> : PagingParam {
-    private static readonly IDynamicSerializer JSON= JsonFormat.CreateDynSerializer();
+    static readonly IDynamicSerializer JSON= JsonFormat.CreateDynSerializer();
+    static readonly List<Filter> emptyFilter= new List<Filter>();
+    static readonly List<Sorter> emptySorter= new List<Sorter>();
 
     private string filterStr;
     ///<summary>Filter list.</summary>
-    protected IList<Filter> filterList;
+    protected IList<Filter> filterList= emptyFilter;
     private string sorterStr;
     ///<summary>Sorter list.</summary>
-    protected IList<Sorter> sorterList;
+    protected IList<Sorter> sorterList= emptySorter;
 
     ///<summary>filter string with format: <c>[{"property":"lastname","value":"aal","operator":"like"}]</c>.</summary>
     public string filter {
@@ -111,7 +113,7 @@ namespace Tlabs.Server.Model {
       ///<summary>Field/property name.</summary>
       public string property { get; set; }
       ///<summary>Value to compare.</summary>
-      public IConvertible value { get; set; }
+      public string value { get; set; }
       ///<summary>Compare operator.</summary>
       public string @operator { get; set; }
     }
@@ -126,7 +128,7 @@ namespace Tlabs.Server.Model {
       public string direction { get; set; }
 
       ///<summary>Check for ASC sort direction.</summary>
-      public bool IsAscSort() => 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
+      public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
 
       ///<summary>Add sorter by <paramref name="prop">property selector</paramref> (of type <typeparamref name="P"/>) to <paramref name="query"/>.</summary>
       public IQueryable<T> Add<T, P>(IQueryable<T> query, System.Linq.Expressions.Expression<Func<T, P>> prop) {
