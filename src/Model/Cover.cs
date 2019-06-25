@@ -8,9 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace Tlabs.Server.Model {
 
   ///<summary>Abstract cover for returned model objects.</summary>
-  public abstract class AbstractCover {
+  public abstract class AbstractCover<T> {
     ///<summary>Logger.</summary>
-    protected ILogger log= App.Logger<AbstractCover>();
+    protected ILogger log= App.Logger<AbstractCover<T>>();
 
     ///<summary>True if requested model could be successfully returned.</summary>
     public bool success {
@@ -18,10 +18,19 @@ namespace Tlabs.Server.Model {
     }
     ///<summary>Any description of an error causing the model retrieval to fail.</summary>
     public string error { get; set; }
+
+    ///<summary>Handle exception.</summary>
+    protected virtual void handleException(Exception e, Func<Exception, string> provideErrMessage) {
+      this.error= provideErrMessage?.Invoke(e);
+      if (null == this.error) {
+        this.error= $"Failed to return {typeof(T).Name}: ({e.Message}).";
+        log.LogError(0, e, this.error);
+      }
+    }
   }
 
   ///<summary>Cover for a single model object being retrieved.</summary>
-  public class ModelCover<M> : AbstractCover {
+  public class ModelCover<M> : AbstractCover<M> {
 
     ///<summary>Ctor from <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
@@ -40,10 +49,7 @@ namespace Tlabs.Server.Model {
         this.data= provideModel(this);
       }
       catch (Exception e) {
-        this.error=   null != provideErrMessage
-                    ? provideErrMessage(e)
-                    : $"Failed to return {typeof(M).Name}: ({e.Message}).";
-        log.LogError(0, e, this.error);
+        handleException(e, provideErrMessage);
       }
     }
     ///<summary>The (covered) model object.</summary>
@@ -51,7 +57,7 @@ namespace Tlabs.Server.Model {
   }
 
   ///<summary>Cover for the result of a data query for model objects.</summary>
-  public class QueryCover<M> : AbstractCover {
+  public class QueryCover<M> : AbstractCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
     protected QueryCover() { }
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
@@ -60,10 +66,7 @@ namespace Tlabs.Server.Model {
         this.data= queryResult(this);
       }
       catch (Exception e) {
-        this.error=   null != provideErrMessage
-                    ? provideErrMessage(e)
-                    : $"Failed to return {typeof(M).Name}: ({e.Message}).";
-        log.LogError(0, e, this.error);
+        handleException(e, provideErrMessage);
       }
     }
     ///<summary>The (covered) result of the query as enumeration.</summary>
@@ -118,7 +121,7 @@ namespace Tlabs.Server.Model {
   }
 
   ///<summary>Cover for the concatenated result(s) of <see cref="IQueryable{T}"/>(s).</summary>
-  public class ConcatQueryCover<T> : AbstractCover {
+  public class ConcatQueryCover<T> : AbstractCover<T> {
     private IEnumerable<T> dataEnum;
 
     ///<summary>Ctor from multiple <paramref name="queries"/>(s).</summary>
@@ -143,10 +146,7 @@ namespace Tlabs.Server.Model {
         this.data= res.Data;
       }
       catch (Exception e) {
-        this.error=   null != provideErrMessage
-                    ? provideErrMessage(e)
-                    : $"Failed to return {typeof(M).Name}: ({e.Message}).";
-        log.LogError(0, e, this.error);
+        handleException(e, provideErrMessage);
       }
     }
 
