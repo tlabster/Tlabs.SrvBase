@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,9 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 
 namespace Tlabs.Config {
   ///<summary>Configures a CORS policy.</summary>
-  ///<remarks>1. Simply configure a global CORS policy for all enddpoints under 'applicationMiddleware' section:
+  ///<remarks>
+  ///<para>TIP: Test CORS using: https://www.test-cors.org/</para>
+  ///1. Simply configure a global CORS policy for all enddpoints under 'applicationMiddleware' section:
   ///<code>
   ///  "CORS": {
   ///    "ord": 30,
@@ -52,7 +55,7 @@ namespace Tlabs.Config {
       var polOpt= new PolicyOptions();
       var optCfg= cfg.GetSection("options");
 
-      if (null != optCfg.Value) optCfg.Bind(polOpt);
+      if (optCfg.GetChildren().Any()) optCfg.Bind(polOpt);
       else log.LogWarning($"Missing CORS 'options' section - using default...");
       services.AddCors(options => options.AddPolicy(TlabsCORSappPolicy, builder => polOpt.Configure(builder)));
       log.LogInformation($"CORS policy '{TlabsCORSappPolicy}' configured from options.");
@@ -62,7 +65,7 @@ namespace Tlabs.Config {
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       PolicyOptions polOpt= null;
       var optCfg= cfg.GetSection("options");
-      if (null != optCfg.Value) {
+      if (optCfg.GetChildren().Any()) {
         polOpt= new PolicyOptions();
         optCfg.Bind(polOpt);
         mware.AppBuilder.UseCors(builder => polOpt.Configure(builder));
