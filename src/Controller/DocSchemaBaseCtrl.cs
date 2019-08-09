@@ -15,22 +15,21 @@ namespace Tlabs.Server.Controller {
   ///<summary><see cref="DocumentSchema"/> upload controller.</summary>
   [Route("api/[controller]/[action]")]
   public class DocSchemaBaseCtrl : Microsoft.AspNetCore.Mvc.Controller {
+    private static readonly ILogger<DocSchemaBaseCtrl> log= App.Logger<DocSchemaBaseCtrl>();
     private IDocSchemaRepo repo;
-    private ILogger<DocSchemaBaseCtrl> log;
     private ISerializer<DocumentSchema> schemaSeri;
     private IDocProcessorRepo docProcRepo;
 
-    ///<summary>Ctor from <paramref name="repo"/>, <paramref name="log"/> and <paramref name="schemaSeri"/>.</summary>
-    public DocSchemaBaseCtrl(IDocSchemaRepo repo, ILogger<DocSchemaBaseCtrl> log, ISerializer<DocumentSchema> schemaSeri, IDocProcessorRepo docProcRepo) {
+    ///<summary>Ctor from <paramref name="repo"/> and <paramref name="schemaSeri"/>.</summary>
+    public DocSchemaBaseCtrl(IDocSchemaRepo repo, ISerializer<DocumentSchema> schemaSeri, IDocProcessorRepo docProcRepo) {
       this.repo= repo;
-      this.log= log;
       this.schemaSeri= schemaSeri;
       this.docProcRepo= docProcRepo;
     }
 
-    ///<summary>POST upload action with <paramref name="html_file"/>, <paramref name="xml_file"/> and <paramref name="css_file"/>.</summary>
+    ///<summary>POST upload action with <paramref name="xml_file"/>, <paramref name="html_file"/> and <paramref name="css_file"/>.</summary>
     //[POST] api/DocSchema/upload
-    protected void UploadIntern(IFormFile html_file, IFormFile xml_file, IFormFile css_file) {
+    protected void UploadIntern(IFormFile html_file, IFormFile xml_file= null, IFormFile css_file= null, IFormFile xls_file= null) {
       var req= this.Request;
       var resp= this.Response;
       if (!req.HasFormContentType) {
@@ -40,28 +39,7 @@ namespace Tlabs.Server.Controller {
       resp.ContentType= "text/plain; charset=utf-8";
       using (var respWr = new StreamWriter(resp.Body, Encoding.UTF8)) {
         try {
-          var files= req.Form.Files;
-          var xls_file= files.GetFile("xls_file");  //optional xls_file
-#if DEBUG
-          foreach (var file in files) {
-            var msg= $"uploaded file: '{file.Name}' ({file.FileName}) {file.Length/1024}kB";
-            log.LogInformation(msg);
-            respWr.WriteLine(msg);
-          }
-#endif
-          var defStreams= new SchemaDefinitionStreams {
-            Schema= xml_file.OpenReadStream(),
-            CalcModel= xls_file?.OpenReadStream(),
-            Form= html_file?.OpenReadStream(),
-            Style= css_file?.OpenReadStream()
-          };
-
-          if (null != defStreams.CalcModel) {
-            //check for possible base64 encoding
-            if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.InvariantCultureIgnoreCase))
-              using (var rd= new StreamReader(defStreams.CalcModel))
-                defStreams.CalcModel= new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
-          }
+          var defStreams= CreateSchemaDefStreams(xml_file, html_file, css_file, xls_file);
           repo.CreateFromStreams<AbstractDocument>(defStreams, docProcRepo);
         }
         catch (Exception e) {
@@ -74,6 +52,24 @@ namespace Tlabs.Server.Controller {
           respWr.WriteLine(vse?.Message ?? e.ToString());
         }
       }
+    }
+
+    ///<summary>Create a <see cref="SchemaDefinitionStreams"/> from <see cref="IFormFile"/>(s).</summary>
+    public static SchemaDefinitionStreams CreateSchemaDefStreams(IFormFile xml_file, IFormFile html_file= null, IFormFile css_file= null, IFormFile xls_file= null) {
+      var defStreams= new SchemaDefinitionStreams {
+        Schema= xml_file.OpenReadStream(),
+        CalcModel= xls_file?.OpenReadStream(),
+        Form= html_file?.OpenReadStream(),
+        Style= css_file?.OpenReadStream()
+      };
+
+      if (null != defStreams.CalcModel) {
+        //check for possible base64 encoding
+        if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.InvariantCultureIgnoreCase))
+          using (var rd = new StreamReader(defStreams.CalcModel))
+            defStreams.CalcModel= new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
+      }
+      return defStreams;
     }
 
     private const string STYLE_DATA= "styles.css";
