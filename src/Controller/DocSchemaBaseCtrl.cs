@@ -14,16 +14,16 @@ namespace Tlabs.Server.Controller {
 
   ///<summary><see cref="DocumentSchema"/> upload controller.</summary>
   [Route("api/[controller]/[action]")]
-  public class DocSchemaBaseCtrl : Microsoft.AspNetCore.Mvc.Controller {
+  public class DocSchemaBaseCtrl : ApiCtrl {
     private static readonly ILogger<DocSchemaBaseCtrl> log= App.Logger<DocSchemaBaseCtrl>();
-    private IDocSchemaRepo repo;
-    private ISerializer<DocumentSchema> schemaSeri;
-    private IDocProcessorRepo docProcRepo;
+    ///<summary>Schema repo..</summary>
+    protected IDocSchemaRepo schemaRepo;
+    ///<summary>Doc. processor repo..</summary>
+    protected IDocProcessorRepo docProcRepo;
 
-    ///<summary>Ctor from <paramref name="repo"/> and <paramref name="schemaSeri"/>.</summary>
-    public DocSchemaBaseCtrl(IDocSchemaRepo repo, ISerializer<DocumentSchema> schemaSeri, IDocProcessorRepo docProcRepo) {
-      this.repo= repo;
-      this.schemaSeri= schemaSeri;
+    ///<summary>Ctor from <paramref name="repo"/> and <paramref name="docProcRepo"/>.</summary>
+    public DocSchemaBaseCtrl(IDocSchemaRepo repo, IDocProcessorRepo docProcRepo) {
+      this.schemaRepo= repo;
       this.docProcRepo= docProcRepo;
     }
 
@@ -40,7 +40,7 @@ namespace Tlabs.Server.Controller {
       using (var respWr = new StreamWriter(resp.Body, Encoding.UTF8)) {
         try {
           var defStreams= CreateSchemaDefStreams(xml_file, html_file, css_file, xls_file);
-          repo.CreateFromStreams<AbstractDocument>(defStreams, docProcRepo);
+          schemaRepo.CreateFromStreams<AbstractDocument>(defStreams, docProcRepo);
         }
         catch (Exception e) {
           log.LogError(0, e, "Schema upload failed.");
@@ -76,35 +76,25 @@ namespace Tlabs.Server.Controller {
 
     ///<summary>Returns <see cref="DocumentSchema"/> form-data based on <paramref name="typeId"/>.</summary>
     ///<remarks>
-    ///If the given typeId starts with 'styles.css?doc=' the forms CSS is returned,
+    ///If the given typeId starts with 'styles.css?form=' the forms CSS is returned,
     ///otherwise the form HTML is returned.
     ///</remarks>
     //[GET] api/DocSchema/form/{typeId}
-    protected void FormIntern(string typeId) {
-      if (STYLE_DATA == typeId.ToLowerInvariant()) {
-        typeId= this.Request.Query["form"];
-        this.Response.ContentType= "text/css; charset=utf-8";
-        writeFormResponseData(this.Response, typeId, (s) => s.FormStyleData);
-        return;
-      }
-
-      this.Response.ContentType= "text/html; charset=utf-8";
-      writeFormResponseData(this.Response, typeId, (s) => s.FormData);
-    }
-
-    private void writeFormResponseData(HttpResponse resp, string typeId, Func<DocumentSchema, byte[]> selectData) {
-      DocumentSchema schema;
-
+    protected void FormIntern(string typeId, string form, Func<string, Stream> formDataStream, Func<string, Stream> styleDataStream) {
+      var resp= this.Response;
       try {
-        schema= repo.GetByTypeId(typeId);
-        var data= selectData(schema);
-        resp.Body.Write(data, 0, data.Length);
+        if (STYLE_DATA == typeId.ToLowerInvariant()) {
+          typeId= form;
+          resp.ContentType= "text/css; charset=utf-8";
+          styleDataStream(typeId).CopyTo(resp.Body);
+          return;
+        }
+
+        resp.ContentType= "text/html; charset=utf-8";
+        formDataStream(typeId).CopyTo(resp.Body);
       }
-      catch (Exception ex) when (ex is InvalidOperationException || ex is ArgumentException) {
-        var err= $"Unknown document type: '{typeId}'";
-        log.LogError(0, ex, err);
-        resp.StatusCode= 404;
-        resp.WriteAsync(err);
+      catch (Exception e) {
+        this.resolveError(e);
       }
     }
 
