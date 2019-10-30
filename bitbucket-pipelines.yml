@@ -1,0 +1,18 @@
+# This is a sample build configuration for .NET Core.
+# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
+# Only use spaces to indent your .yml configuration.
+# -----
+# You can specify a custom docker image from Docker Hub as your build environment.
+image: microsoft/dotnet:2.1-sdk
+
+pipelines:
+  branches:
+     develop:
+       - step:
+            name: Base tests
+            caches:
+              - dotnetcore
+            script:
+              - echo "Running srvbase tests"
+              - dotnet restore ./tst/Tlabs.SrvBase.Tests.csproj
+              - dotnet test ./tst/Tlabs.SrvBase.Tests.csproj            
