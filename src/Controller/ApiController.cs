@@ -12,50 +12,50 @@ namespace Tlabs.Server.Controller {
     static readonly ILogger log= Tlabs.App.Logger<ApiCtrl>();
 
     ///<summary>Resolve API error code from exception.</summary>
-    protected virtual string resolveError(Exception e) {
+    protected virtual string resolveError(Exception e, string msg0= null) {
       var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
-      var msg= "Unsupported internal state - please ckeck with log.";
+      var msg= msg0 ?? "Unsupported internal state - please ckeck with log.";
 
       switch (e) {
         case DataEntityNotFoundException nfe:
           code= StatusCodes.Status404NotFound;
-          msg= nfe.Message;
+          msg= msg0 ?? nfe.Message;
         break;
 
         case ArgumentNullException an:
           code= StatusCodes.Status400BadRequest;
-          msg= $"Missing required parameter '{an.ParamName}'";
+          msg= msg0 ?? $"Missing required parameter '{an.ParamName}'";
           break;
 
         case ArgumentException ae:
           code= StatusCodes.Status400BadRequest;
-          msg= ae.Message;
+          msg= msg0 ?? ae.Message;
         break;
 
         case KeyNotFoundException kn:
           code= StatusCodes.Status404NotFound;
-          msg= kn.Message;
+          msg= msg0 ?? kn.Message;
         break;
 
         case InvalidOperationException io:
           code= StatusCodes.Status404NotFound;
-          msg= io.Message;
+          msg= msg0 ?? io.Message;
         break;
 
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
-          msg= $"Invalid parameter type ({ic.Message})";
+          msg= msg0 ?? $"Invalid parameter type ({ic.Message})";
         break;
 
         case FormatException fe:
           code= StatusCodes.Status400BadRequest;
-          msg= $"Invalid parameter format ({fe.Message})";
+          msg= msg0 ?? $"Invalid parameter format ({fe.Message})";
         break;
 
         default:
           if (null != e.InnerException)
-            return resolveError(e.InnerException);
+            return resolveError(e.InnerException, msg);
           log.LogError(0, e, msg);
           break;
       }
