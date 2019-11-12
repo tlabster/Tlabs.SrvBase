@@ -11,57 +11,62 @@ namespace Tlabs.Server.Controller {
   public class ApiCtrl : Microsoft.AspNetCore.Mvc.Controller {
     static readonly ILogger log= Tlabs.App.Logger<ApiCtrl>();
 
+    ///<summary>Resolved status code.</summary>
+    protected int? ResolvedStatusCode;
+
     ///<summary>Resolve API error code from exception.</summary>
     protected virtual string resolveError(Exception e, string msg0= null) {
       var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
-      var msg= msg0 ?? "Unsupported internal state - please ckeck with log.";
+      var msg= msg0 ?? e.Message;
 
       switch (e) {
         case DataEntityNotFoundException nfe:
           code= StatusCodes.Status404NotFound;
-          msg= msg0 ?? nfe.Message;
+          msg= msg ?? nfe.Message;
         break;
 
         case ArgumentNullException an:
           code= StatusCodes.Status400BadRequest;
-          msg= msg0 ?? $"Missing required parameter '{an.ParamName}'";
+          msg= msg ?? $"Missing required parameter '{an.ParamName}'";
           break;
 
         case ArgumentException ae:
           code= StatusCodes.Status400BadRequest;
-          msg= msg0 ?? ae.Message;
+          msg= msg ?? ae.Message;
         break;
 
         case KeyNotFoundException kn:
           code= StatusCodes.Status404NotFound;
-          msg= msg0 ?? kn.Message;
+          msg= msg ?? kn.Message;
         break;
 
         case InvalidOperationException io:
           code= StatusCodes.Status404NotFound;
-          msg= msg0 ?? io.Message;
+          msg= msg ?? io.Message;
         break;
 
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
-          msg= msg0 ?? $"Invalid parameter type ({ic.Message})";
+          msg= msg ?? $"Invalid parameter type ({ic.Message})";
         break;
 
         case FormatException fe:
           code= StatusCodes.Status400BadRequest;
-          msg= msg0 ?? $"Invalid parameter format ({fe.Message})";
+          msg= msg ?? $"Invalid parameter format ({fe.Message})";
         break;
 
         default:
           if (null != e.InnerException)
             return resolveError(e.InnerException, msg);
-          log.LogError(0, e, msg);
-          break;
+          msg= "Unsupported internal state - please ckeck with log.";
+        break;
       }
 
       log.LogDebug(0, e, msg);
-      HttpContext.Response.StatusCode= code;
+      if (null != HttpContext)
+        HttpContext.Response.StatusCode= code;
+      ResolvedStatusCode= code;
       return msg;
     }
   }

@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Collections.Generic;
 using System.Text;
 
 using Tlabs.Data.Serialize.Json;
@@ -7,7 +6,6 @@ using Tlabs.Data.Serialize.Json;
 using Xunit;
 using Xunit.Abstractions;
 
-using Tlabs.Config;
 
 namespace Tlabs.Server.Model.Test {
 
