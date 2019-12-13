@@ -156,9 +156,7 @@ namespace Tlabs.Config {
         };
       });
 
-      services.AddAuthentication(options => {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-      });
+      services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
 
       log.LogInformation("AspNetCore.Identity services added");
 
