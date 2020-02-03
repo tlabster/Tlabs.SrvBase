@@ -20,6 +20,7 @@ using Tlabs.Data.Serialize.Json;
 using Tlabs.Data.Entity;
 using Tlabs.Identity;
 using Tlabs.Server.Identity;
+using Tlabs.Server.Auth;
 
 namespace Tlabs.Config {
 
