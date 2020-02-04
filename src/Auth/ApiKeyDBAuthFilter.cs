@@ -74,8 +74,6 @@ namespace Tlabs.Server.Auth {
     public class Options {
       ///<summary>Path policy regex pattern.</summary>
       public string pathPolicy { get; set; }
-      ///<summary>Initial key</summary>
-      public string initialKey { get; set; }
     }
 
     /// <summary>Configurator</summary>
@@ -83,6 +81,7 @@ namespace Tlabs.Server.Auth {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.Configure<Options>(cfg.GetSection("config"));
+        svcColl.Configure<DefaultApiKeyRegistry.Options>(cfg.GetSection("config"));
         svcColl.AddSingleton<ApiKeyDBAuthFilter>();
         svcColl.AddSingleton<IApiKeyRegistry, DefaultApiKeyRegistry>();
         ApiKeyDBAuthFilter.log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));

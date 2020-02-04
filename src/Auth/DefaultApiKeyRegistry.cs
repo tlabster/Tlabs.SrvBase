@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
 using Tlabs.Misc;
@@ -12,15 +13,37 @@ namespace Tlabs.Server.Auth {
   ///<inheritdoc/>
   public class DefaultApiKeyRegistry : IApiKeyRegistry {
     private static BasicCache<string, KeyToken> cache= new BasicCache<string, KeyToken>();
+    private readonly Options options;
+
+    ///<summary>Ctor</summary>
+    public DefaultApiKeyRegistry(IOptions<Options> options) {
+      this.options= options.Value;
+      if (this.RegisteredKeyCount() == 0)
+        cache[this.options.initialKey]= new KeyToken {
+          TokenName= this.options.initialTokenName,
+          Description= "Initial Key - Please Delete",
+          ValidFrom= App.TimeInfo.Now,
+          ValidityState= ApiKey.Status.ACTIVE.ToString(),
+          ValidUntil= App.TimeInfo.Now.AddHours(this.options.initialValidHours.HasValue ? this.options.initialValidHours.Value : 1)
+        };
+    }
 
     ///<inheritdoc/>
     public KeyToken Register(string key, string tokenName, string description = null, DateTime? validUntil = null) {
+      if (string.IsNullOrEmpty(key))
+        throw new ArgumentNullException("Key cannot be empty");
+      if (string.IsNullOrEmpty(tokenName))
+        throw new ArgumentNullException("Token name cannot be empty");
+
       ApiKey apiKey= null;
       App.WithServiceScope(prov => {
+        var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
         var um= (UserManager<User>)prov.GetService(typeof(UserManager<User>));
+        var hash= um.PasswordHasher.HashPassword(null, key);
+
         //first, hash and store in db
         apiKey= new ApiKey {
-          Hash= um.PasswordHasher.HashPassword(null, key),
+          Hash= hash,
           TokenName= tokenName,
           Description= description,
           ValidFrom= App.TimeInfo.Now,
@@ -28,7 +51,7 @@ namespace Tlabs.Server.Auth {
           Roles= null, //TODO: roles
           ValidityState= ApiKey.Status.ACTIVE.ToString()
         };
-        var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
+
         repo.Insert(apiKey);
         repo.Store.CommitChanges();
       });
@@ -42,7 +65,6 @@ namespace Tlabs.Server.Auth {
 
     ///<inheritdoc/>
     public KeyToken Deregister(string tokenName) {
-      //TODO what happens if we have a load balancer or similar?
       KeyToken returnToken= null;
       App.WithServiceScope(prov => {
         var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
@@ -54,6 +76,9 @@ namespace Tlabs.Server.Auth {
         if (apiKey == null || apiKey.ValidityState == ApiKey.Status.DELETED.ToString())
           return;
 
+        //alter token name and hash to enable key generation of new key with old name / key
+        apiKey.TokenName= apiKey.TokenName + Guid.NewGuid().ToString().Substring(0, 8);
+        apiKey.Hash= null;
         apiKey.ValidUntil= App.TimeInfo.Now;
         apiKey.ValidityState= ApiKey.Status.DELETED.ToString();
         repo.Update(apiKey);
@@ -102,10 +127,10 @@ namespace Tlabs.Server.Auth {
         var um= (UserManager<User>)prov.GetService(typeof(UserManager<User>));
         var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
         token= KeyToken.FromEntity(repo.AllUntracked
-                                .Where(r => r.ValidFrom <= App.TimeInfo.Now
-                                        && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
-                                        &&  r.ValidityState == ApiKey.Status.ACTIVE.ToString())
-                                .FirstOrDefault(r => um.PasswordHasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success));
+                       .Where(r => r.ValidFrom <= App.TimeInfo.Now
+                              && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
+                              &&  r.ValidityState == ApiKey.Status.ACTIVE.ToString())
+                       .FirstOrDefault(r => um.PasswordHasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success));
       });
 
       //cache if existing
@@ -117,7 +142,7 @@ namespace Tlabs.Server.Auth {
 
     ///<inheritdoc/>
     public string GenerateKey() {
-      return generateRandomCryptographicKey(32); //TODO make length configurable
+      return generateRandomCryptographicKey(options.genKeyLength.HasValue ? options.genKeyLength.Value : 32);
     }
 
     ///<summary>
@@ -130,6 +155,18 @@ namespace Tlabs.Server.Auth {
       byte[] randomBytes = new byte[keyLength];
       rngCryptoServiceProvider.GetNonZeroBytes(randomBytes);
       return Convert.ToBase64String(randomBytes);
+    }
+
+    ///<summary>Options for the registry</summary>
+    public class Options {
+      ///<summary>initialKey</summary>
+      public string initialKey { get; set; }
+      ///<summary>initialTokenName</summary>
+      public string initialTokenName { get; set; }
+      ///<summary>initialValidHours</summary>
+      public int? initialValidHours { get; set; }
+      ///<summary>genKeyLength</summary>
+      public int? genKeyLength { get; set; }
     }
   }
 }

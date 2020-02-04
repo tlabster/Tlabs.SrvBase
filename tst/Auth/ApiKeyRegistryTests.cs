@@ -5,6 +5,7 @@ using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
@@ -34,6 +35,7 @@ namespace Tlabs.Server.Controller.Test {
       public IServiceProvider SvcProviderScope { get; set; }
       public IServiceScope SvcScope { get; }
       public IServiceScopeFactory SvcScopeFactory { get; }
+      public IOptions<DefaultApiKeyRegistry.Options> Options { get; }
       public Fixture() {
         this.PasswordHasher= new MockPasswordHasher();
         var store = new Mock<IUserStore<User>>();
@@ -129,7 +131,16 @@ namespace Tlabs.Server.Controller.Test {
 
         App.ServiceProv= this.SvcProvider;
 
-        this.ApiKeyRegistry= new DefaultApiKeyRegistry();
+        var options= new Mock<IOptions<DefaultApiKeyRegistry.Options>>();
+        options.Setup(o => o.Value).Returns(new DefaultApiKeyRegistry.Options {
+          initialKey= Guid.Empty.ToString(),
+          initialTokenName= "INITIAL",
+          initialValidHours= 1,
+          genKeyLength= 32
+        });
+        this.Options= options.Object;
+
+        this.ApiKeyRegistry= new DefaultApiKeyRegistry(this.Options);
       }
     }
 
@@ -218,6 +229,12 @@ namespace Tlabs.Server.Controller.Test {
 
       token= registry.VerifiedKey(key);
       Assert.Null(token);
+    }
+
+    [Fact]
+    public void TestValidation() {
+      Assert.Throws<ArgumentNullException>(() => registry.Register("", "bla"));
+      Assert.Throws<ArgumentNullException>(() => registry.Register("bla", ""));
     }
   }
 }
