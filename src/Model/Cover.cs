@@ -10,7 +10,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Abstract cover for returned model objects.</summary>
   public abstract class AbstractCover<T> {
     ///<summary>Logger.</summary>
-    protected ILogger log= App.Logger<AbstractCover<T>>();
+    protected static readonly ILogger log= App.Logger<AbstractCover<T>>();
 
     ///<summary>True if requested model could be successfully returned.</summary>
     public bool success {
@@ -29,16 +29,17 @@ namespace Tlabs.Server.Model {
     }
   }
 
-  ///<summary>Cover for a single model object being retrieved.</summary>
+  ///<summary>Cover for a single model object being provided from delegate.</summary>
   public class ModelCover<M> : AbstractCover<M> {
-
+    ///<summary>Default ctor.</summary>
+    protected ModelCover() { }
     ///<summary>Ctor from <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
     ///<code>
     ///[HttpPut]
     ///public ModelCover&lt;MyModel&gt; Update([FromBody]MyModel model) {
     ///  return new ModelCover&lt;MyModel&gt;(() => {
-    ///    /* do anything to sync. the model with its persistent state */
+    ///    /* do anything to obtain the model */
     ///    return model;
     ///  });
     ///}
