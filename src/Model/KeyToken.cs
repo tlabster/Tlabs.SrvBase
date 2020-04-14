@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tlabs.Data.Entity;
 namespace Tlabs.Server.Model {
   ///<summary>Model class for the API Key</summary>
@@ -17,7 +18,7 @@ namespace Tlabs.Server.Model {
     public DateTime? ValidUntil { get; set; }
 
     ///<summary>Roles</summary>
-    public List<Role> Roles { get; set; }
+    public List<string> Roles { get; set; }
 
     ///<summary>Validity State</summary>
     public string ValidityState { get; set; }
@@ -31,7 +32,8 @@ namespace Tlabs.Server.Model {
         Description= ent.Description,
         ValidFrom= ent.ValidFrom,
         ValidUntil= ent.ValidUntil,
-        ValidityState= ent.ValidityState
+        ValidityState= ent.ValidityState,
+        Roles= ent.Roles.Select(x => x.Role.Name).ToList()
       };
       return key;
     }

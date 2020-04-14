@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Text;
 using System.Linq;
 
 using Tlabs.Data.Serialize;
@@ -36,9 +33,9 @@ namespace Tlabs.Server.Model {
   }
 
   ///<summary>Delegate function to add a filter to <c>IQueryable&lt;T&gt;</c>.</summary>
-  public delegate IQueryable<T> FilterExpression<T>(IQueryable<T> q, FilterParam<T>.Filter f);
+  public delegate IQueryable<T> FilterExpression<T>(IQueryable<T> q, Filter f);
   ///<summary>Delegate function to add a soter to <c>IQueryable&lt;T&gt;</c>.</summary>
-  public delegate IQueryable<T> SorterExpression<T>(IQueryable<T> q, FilterParam<T>.Sorter s);
+  public delegate IQueryable<T> SorterExpression<T>(IQueryable<T> q, Sorter s);
 
   ///<summary>Filter parameter model to be bound via MVC model binding.</summary>
   ///<remarks>This filter parameter model is aimed to bind a request like:
@@ -81,7 +78,7 @@ namespace Tlabs.Server.Model {
 
     /// <summary>Filters that are enforced</summary>
     public Dictionary<string, string> EnforcedFilters { get; set; }
-    
+
     ///<summary>Apply this filter parameters to the <paramref name="query"/>.</summary>
     public IQueryable<TEntity> ApplyFilter(IQueryable<TEntity> query,
                                            IDictionary<string, FilterExpression<TEntity>> filterMap,
@@ -105,36 +102,35 @@ namespace Tlabs.Server.Model {
         if (sorterMap.TryGetValue(s.property, out sorter))
           query= sorter(query, s);
       }
-      return query;                                        
-    }
-
-    ///<summary>Filter descriptor.</summary>
-    public class Filter {
-      ///<summary>Field/property name.</summary>
-      public string property { get; set; }
-      ///<summary>Value to compare.</summary>
-      public string value { get; set; }
-      ///<summary>Compare operator.</summary>
-      public string @operator { get; set; }
-    }
-
-    ///<summary>Sorter descriptor.</summary>
-    public class Sorter {
-      ///<summary>Value for sort direction ascending</summary>
-      public const string ASC= "ASC";
-      ///<summary>Field/property name.</summary>
-      public string property { get; set; }
-      ///<summary>Sort direction.</summary>
-      public string direction { get; set; }
-
-      ///<summary>Check for ASC sort direction.</summary>
-      public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
-
-      ///<summary>Add sorter by <paramref name="prop">property selector</paramref> (of type <typeparamref name="P"/>) to <paramref name="query"/>.</summary>
-      public IQueryable<T> Add<T, P>(IQueryable<T> query, System.Linq.Expressions.Expression<Func<T, P>> prop) {
-        return IsAscSort() ? query.OrderBy(prop) : query.OrderByDescending(prop);
-      }
+      return query;
     }
   }
 
+  ///<summary>Filter descriptor.</summary>
+  public class Filter {
+    ///<summary>Field/property name.</summary>
+    public string property { get; set; }
+    ///<summary>Value to compare.</summary>
+    public string value { get; set; }
+    ///<summary>Compare operator.</summary>
+    public string @operator { get; set; }
+  }
+
+  ///<summary>Sorter descriptor.</summary>
+  public class Sorter {
+    ///<summary>Value for sort direction ascending</summary>
+    public const string ASC= "ASC";
+    ///<summary>Field/property name.</summary>
+    public string property { get; set; }
+    ///<summary>Sort direction.</summary>
+    public string direction { get; set; }
+
+    ///<summary>Check for ASC sort direction.</summary>
+    public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
+
+    ///<summary>Add sorter by <paramref name="prop">property selector</paramref> (of type <typeparamref name="P"/>) to <paramref name="query"/>.</summary>
+    public IQueryable<T> Add<T, P>(IQueryable<T> query, System.Linq.Expressions.Expression<Func<T, P>> prop) {
+      return IsAscSort() ? query.OrderBy(prop) : query.OrderByDescending(prop);
+    }
+  }
 }

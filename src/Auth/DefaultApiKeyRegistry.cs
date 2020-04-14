@@ -29,11 +29,13 @@ namespace Tlabs.Server.Auth {
     }
 
     ///<inheritdoc/>
-    public KeyToken Register(string key, string tokenName, string description = null, DateTime? validUntil = null) {
+    public KeyToken Register(KeyToken token, string key) {
       if (string.IsNullOrEmpty(key))
-        throw new ArgumentNullException("Key cannot be empty");
-      if (string.IsNullOrEmpty(tokenName))
-        throw new ArgumentNullException("Token name cannot be empty");
+        throw new ArgumentNullException(nameof(key));
+      if (string.IsNullOrEmpty(token.TokenName))
+        throw new ArgumentNullException(nameof(token.TokenName));
+      if (null == token.Roles || !token.Roles.Any())
+        throw new ArgumentNullException(nameof(token.Roles));
 
       ApiKey apiKey= null;
       App.WithServiceScope(prov => {
@@ -44,15 +46,24 @@ namespace Tlabs.Server.Auth {
         //first, hash and store in db
         apiKey= new ApiKey {
           Hash= hash,
-          TokenName= tokenName,
-          Description= description,
-          ValidFrom= App.TimeInfo.Now,
-          ValidUntil= validUntil,
-          Roles= null, //TODO: roles
+          TokenName= token.TokenName,
+          Description= token.Description,
+          ValidFrom= token.ValidFrom ?? App.TimeInfo.Now,
+          ValidUntil= token.ValidUntil,
           ValidityState= ApiKey.Status.ACTIVE.ToString()
         };
 
+
+        var roles= repo.Store.Query<Role>().Where(r => token.Roles.Contains(r.Name));
+        apiKey.Roles= new List<ApiKey.RoleRef>();
+        foreach(var role in roles) {
+          apiKey.Roles.Add(new ApiKey.RoleRef {
+            ApiKey= apiKey,
+            Role= role
+          });
+        }
         repo.Insert(apiKey);
+
         repo.Store.CommitChanges();
       });
 
@@ -93,7 +104,8 @@ namespace Tlabs.Server.Auth {
       KeyToken[] keys= null;
       App.WithServiceScope(prov => {
         var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
-        keys= repo.AllUntracked.Where(r => r.ValidityState != ApiKey.Status.DELETED.ToString()).Select(r => KeyToken.FromEntity(r)).ToArray();
+        keys= repo.AllUntracked.LoadRelated(repo.Store, k => k.Roles).ThenLoadRelated(repo.Store, k => k.Role)
+          .Where(r => r.ValidityState != ApiKey.Status.DELETED.ToString()).Select(r => KeyToken.FromEntity(r)).ToArray();
       });
       return keys;
     }
@@ -126,11 +138,16 @@ namespace Tlabs.Server.Auth {
       App.WithServiceScope(prov => {
         var um= (UserManager<User>)prov.GetService(typeof(UserManager<User>));
         var repo= (IRepo<ApiKey>)prov.GetService(typeof(IRepo<ApiKey>));
-        token= KeyToken.FromEntity(repo.AllUntracked
-                       .Where(r => r.ValidFrom <= App.TimeInfo.Now
-                              && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
-                              &&  r.ValidityState == ApiKey.Status.ACTIVE.ToString())
-                       .FirstOrDefault(r => um.PasswordHasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success));
+        var ent= repo.AllUntracked.LoadRelated(repo.Store, x => x.Roles)
+          .ThenLoadRelated(repo.Store, x => x.Role)
+          .Where(r =>
+            r.ValidFrom <= App.TimeInfo.Now
+            && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
+            && r.ValidityState == ApiKey.Status.ACTIVE.ToString()
+          ).FirstOrDefault(r =>
+            um.PasswordHasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success
+          );
+        token= KeyToken.FromEntity(ent);
       });
 
       //cache if existing

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -10,11 +8,12 @@ using Moq;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
 using Tlabs.Server.Auth;
+using Tlabs.Server.Model;
 using Xunit;
-using Xunit.Abstractions;
 
 
-namespace Tlabs.Server.Controller.Test {
+namespace Tlabs.Server.Controller.Test
+{
 
   public class DefaultApiKeyRegistryTests : IClassFixture<DefaultApiKeyRegistryTests.Fixture> {
     public class MockPasswordHasher : IPasswordHasher<User> {
@@ -43,61 +42,123 @@ namespace Tlabs.Server.Controller.Test {
         userManagerMock.Object.PasswordHasher= this.PasswordHasher;
         UserManager= userManagerMock.Object;
 
-        this.DataStore= new List<ApiKey>{
-          new ApiKey {
-            Id= 1,
-            TokenName= "ValidToken1",
-            Hash= "ValidToken1",
-            Description= "Valid Token 1",
-            ValidFrom= default(DateTime),
-            ValidUntil= null,
-            ValidityState= ApiKey.Status.ACTIVE.ToString()
-          }, new ApiKey {
-            Id= 2,
-            TokenName= "ValidToken2",
-            Hash= "ValidToken2",
-            Description= "Valid Token 2",
-            ValidFrom= default(DateTime),
-            ValidUntil= App.TimeInfo.Now.Date.AddMonths(1),
-            ValidityState= ApiKey.Status.ACTIVE.ToString()
-          }, new ApiKey {
-            Id= 3,
-            TokenName= "ExpiredToken1",
-            Hash= "ExpiredToken1",
-            Description= "Expired Token 1",
-            ValidFrom= default(DateTime),
-            ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
-            ValidityState= ApiKey.Status.ACTIVE.ToString()
-          }, new ApiKey {
-            Id= 4,
-            TokenName= "NotYetValidToken1",
-            Hash= "NotYetValidToken1",
-            Description= "Not Yet Valid Token 1",
-            ValidFrom= App.TimeInfo.Now.Date.AddMonths(1),
-            ValidUntil= null,
-            ValidityState= ApiKey.Status.ACTIVE.ToString()
-          }, new ApiKey {
-            Id= 5,
-            TokenName= "DeletedToken1",
-            Hash= "DeletedToken1",
-            Description= "Deleted Token 1",
-            ValidFrom= default(DateTime),
-            ValidUntil= null,
-            ValidityState= ApiKey.Status.DELETED.ToString()
-          },
-          new ApiKey {
-            Id= 6,
-            TokenName= "DeletedToken2",
-            Hash= "DeletedToken2",
-            Description= "Deleted Token 2",
-            ValidFrom= default(DateTime),
-            ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
-            ValidityState= ApiKey.Status.DELETED.ToString()
+        var role= new Role {
+          Name= "Admin"
+        };
+
+        this.DataStore= new List<ApiKey>();
+
+        var k= new ApiKey {
+          Id= 1,
+          TokenName= "ValidToken1",
+          Hash= "ValidToken1",
+          Description= "Valid Token 1",
+          ValidFrom= default(DateTime),
+          ValidUntil= null,
+          ValidityState= ApiKey.Status.ACTIVE.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
           }
         };
+        this.DataStore.Add(k);
+
+
+        k= new ApiKey {
+          Id= 2,
+          TokenName= "ValidToken2",
+          Hash= "ValidToken2",
+          Description= "Valid Token 2",
+          ValidFrom= default(DateTime),
+          ValidUntil= App.TimeInfo.Now.Date.AddMonths(1),
+          ValidityState= ApiKey.Status.ACTIVE.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
+          }
+        };
+        this.DataStore.Add(k);
+
+        k= new ApiKey {
+          Id= 3,
+          TokenName= "ExpiredToken1",
+          Hash= "ExpiredToken1",
+          Description= "Expired Token 1",
+          ValidFrom= default(DateTime),
+          ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
+          ValidityState= ApiKey.Status.ACTIVE.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
+          }
+        };
+        this.DataStore.Add(k);
+
+        k= new ApiKey {
+          Id= 4,
+          TokenName= "NotYetValidToken1",
+          Hash= "NotYetValidToken1",
+          Description= "Not Yet Valid Token 1",
+          ValidFrom= App.TimeInfo.Now.Date.AddMonths(1),
+          ValidUntil= null,
+          ValidityState= ApiKey.Status.ACTIVE.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
+          }
+        };
+        this.DataStore.Add(k);
+
+        k= new ApiKey {
+          Id= 5,
+          TokenName= "DeletedToken1",
+          Hash= "DeletedToken1",
+          Description= "Deleted Token 1",
+          ValidFrom= default(DateTime),
+          ValidUntil= null,
+          ValidityState= ApiKey.Status.DELETED.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
+          }
+        };
+        this.DataStore.Add(k);
+
+        k= new ApiKey {
+          Id= 6,
+          TokenName= "DeletedToken2",
+          Hash= "DeletedToken2",
+          Description= "Deleted Token 2",
+          ValidFrom= default(DateTime),
+          ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
+          ValidityState= ApiKey.Status.DELETED.ToString()
+        };
+        k.Roles= new List<ApiKey.RoleRef> {
+          new ApiKey.RoleRef {
+            Role= role,
+            ApiKey= k
+          }
+        };
+        this.DataStore.Add(k);
+
+
         var apiKeyRepoMock= new Mock<IRepo<ApiKey>>();
         apiKeyRepoMock.Setup(s => s.AllUntracked)
                       .Returns(this.DataStore.AsQueryable());
+
+        var emptyStore= new NoopStoreConfigurator.NoopDataStore();
+        apiKeyRepoMock.Setup(s => s.Store).Returns(emptyStore);
+
         apiKeyRepoMock.Setup(s => s.Insert(It.IsAny<ApiKey>()))
                       .Callback<ApiKey>(key => this.DataStore.Add(key))
                       .Returns<ApiKey>(key => key);
@@ -108,7 +169,6 @@ namespace Tlabs.Server.Controller.Test {
                         obj.ValidityState= key.ValidityState;
                       })
                       .Returns<ApiKey>(key => key);
-        apiKeyRepoMock.Setup(r => r.Store.CommitChanges()).Callback(() => Thread.Sleep(50)/*do nothing*/);
 
         this.ApiKeyRepo= apiKeyRepoMock.Object;
 
@@ -201,7 +261,11 @@ namespace Tlabs.Server.Controller.Test {
     [Fact]
     public void TestRegisterKey() {
       var key= "RegisteredKey1";
-      var token= registry.Register(key, key, key);
+      var token= registry.Register(new KeyToken{
+        TokenName= key,
+        Description= key,
+        Roles= new List<string> { "Admin" }
+      }, key);
       Assert.NotNull(token);
       Assert.True(token.TokenName == key);
       Assert.True(token.Description == key);
@@ -214,7 +278,13 @@ namespace Tlabs.Server.Controller.Test {
     [Fact]
     public void TestDeregisterKey() {
       var key= "DeregisteredKey1";
-      var token= registry.Register(key, key, key);
+      var token= registry.Register(
+        new KeyToken{
+          TokenName= key,
+          Description= key,
+          Roles= new List<string> { "Admin" }
+        }, key
+      );
       Assert.NotNull(token);
       Assert.True(token.TokenName == key);
       Assert.True(token.Description == key);
@@ -233,8 +303,9 @@ namespace Tlabs.Server.Controller.Test {
 
     [Fact]
     public void TestValidation() {
-      Assert.Throws<ArgumentNullException>(() => registry.Register("", "bla"));
-      Assert.Throws<ArgumentNullException>(() => registry.Register("bla", ""));
+      Assert.Throws<ArgumentNullException>(() => registry.Register(new KeyToken { TokenName= "", Description= "Test", Roles= new List<string> { "Admin" }}, "bla"));
+      Assert.Throws<ArgumentNullException>(() => registry.Register(new KeyToken { TokenName= "Test", Description= "Test", Roles= new List<string> { "Admin" } }, ""));
+      Assert.Throws<ArgumentNullException>(() => registry.Register(new KeyToken { TokenName= "Test", Description= "Test" }, "key"));
     }
   }
 }

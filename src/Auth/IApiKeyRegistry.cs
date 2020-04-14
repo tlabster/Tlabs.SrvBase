@@ -8,9 +8,9 @@ namespace Tlabs.Server.Auth {
   ///<summary>Registry for managing API Keys</summary>
   public interface IApiKeyRegistry {
 
-    ///<summary>Registers the <paramref name="key"/> with a unique <paramref name="tokenName"/> and optional <paramref name="description"/> and <paramref name="validUntil"/></summary>
+    ///<summary>Registers the <paramref name="key"/> for a given <paramref name="token"/></summary>
     ///<returns>The registered key token</returns>
-    KeyToken Register(string key, string tokenName, string description= null, DateTime? validUntil= null);
+    KeyToken Register(KeyToken token, string key);
 
     ///<summary>Deregisters the key with the specified <paramref name="tokenName"/></summary>
     KeyToken Deregister(string tokenName);
