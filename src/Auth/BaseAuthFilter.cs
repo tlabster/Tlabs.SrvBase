@@ -51,9 +51,9 @@ namespace Tlabs.Server.Auth {
 
       var err= new JsonResult(new {
         success= false,
-        error= "Unauthorized Request"
+        error= "Forbidden Request"
       });
-      err.StatusCode= StatusCodes.Status401Unauthorized;
+      err.StatusCode= StatusCodes.Status403Forbidden;
       ctx.Result= err;  //setting a result does short-circuit the remainder of the filter pipeline...
     }
 
