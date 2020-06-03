@@ -60,6 +60,7 @@ namespace Tlabs.Server.Controller {
           if (null != e.InnerException)
             return resolveError(e.InnerException, msg);
           msg= "Unsupported internal state - please check with log.";
+          log.LogError(e, "Error processing request ({msg}).", e.Message);
         break;
       }
 
