@@ -45,13 +45,8 @@ namespace Tlabs.Server.Identity {
     public Task<User> FindByIdAsync(string userId, CancellationToken cancellationToken) {
       cancellationToken.ThrowIfCancellationRequested();
       ThrowIfDisposed();
-      if (int.TryParse(userId, out int id)) return Task.FromResult(
-        repo.AllUntracked
-            .Where(u => u.Id == id)
-            .LoadRelated(repo.Store, u => u.Roles)
-            .ThenLoadRelated(repo.Store, u => u.Role)
-            .SingleOrDefault()
-      );
+      if (int.TryParse(userId, out int id))
+        return Task.FromResult(repo.Get(id));
         
       return Task.FromResult((User)null);
     }
@@ -60,13 +55,7 @@ namespace Tlabs.Server.Identity {
     public Task<User> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) {
       cancellationToken.ThrowIfCancellationRequested();
       ThrowIfDisposed();
-      return Task.FromResult(
-        repo.AllUntracked
-            .Where(u => u.NormalizedUserName == normalizedUserName)
-            .LoadRelated(repo.Store, u => u.Roles)
-            .ThenLoadRelated(repo.Store, u => u.Role)
-            .SingleOrDefault()
-      );
+      return Task.FromResult(repo.AllUntracked.SingleOrDefault(x => x.NormalizedUserName == normalizedUserName));
     }
 
     /// <inherit/>
