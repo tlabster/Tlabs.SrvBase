@@ -34,6 +34,8 @@ namespace Tlabs.Server.Identity {
     ///<inherit/>
     public override string Name => Principal.Identity.Name;
     ///<inherit/>
+    public override string AuthenticationType => Principal.Identity.AuthenticationType;
+    ///<inherit/>
     public override int Id {
       get {
         int id= 0;

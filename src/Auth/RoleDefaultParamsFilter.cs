@@ -60,7 +60,7 @@ namespace Tlabs.Server.Auth {
       if (null == idSrvc.Name) return null;
 
       var currentRoles= idSrvc.Roles;
-      var roles= currentRoles.Select(x => Role.Cache[x, loadRole(x)]);
+      var roles= currentRoles.Where(x => null != x).Select(x => Role.Cache[x, loadRole(x)]);
 
       var role= roles.FirstOrDefault(r => r.AllowAccessPattern != null);
 
