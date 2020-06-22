@@ -9,6 +9,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 using Tlabs.Config;
+using System.Security.Claims;
+using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace Tlabs.Server.Auth {
   ///<summary>Authorization filter to check for API keys stored in the database</summary>
@@ -48,6 +51,12 @@ namespace Tlabs.Server.Auth {
           unauthorized(context);
           return;
         }
+        // In case API is used set new principal in context to set current user to API key
+        var identity= new ClaimsIdentity("Identity.ApiKey");
+        identity.AddClaim(new Claim(ClaimTypes.Name, token.TokenName));
+        context.HttpContext.User= new System.Security.Claims.ClaimsPrincipal(
+          new List<ClaimsIdentity> { identity }
+        );
 
         if (checkRoles(token.Roles.ToArray(), context)) {
           return;
