@@ -12,7 +12,7 @@ using Tlabs.Server.Model;
 namespace Tlabs.Server.Auth {
   ///<inheritdoc/>
   public class DefaultApiKeyRegistry : IApiKeyRegistry {
-    private static BasicCache<string, KeyToken> cache= new BasicCache<string, KeyToken>();
+    private static readonly BasicCache<string, KeyToken> cache= new BasicCache<string, KeyToken>();
     private readonly Options options;
 
     ///<summary>Ctor</summary>
@@ -24,7 +24,8 @@ namespace Tlabs.Server.Auth {
           Description= "Initial Key - Please Delete",
           ValidFrom= App.TimeInfo.Now,
           ValidityState= ApiKey.Status.ACTIVE.ToString(),
-          ValidUntil= App.TimeInfo.Now.AddHours(this.options.initialValidHours.HasValue ? this.options.initialValidHours.Value : 1)
+          ValidUntil= App.TimeInfo.Now.AddHours(this.options.initialValidHours ?? 1),
+          Roles= new List<string> { "SUPER_ADMIN" }
         };
     }
 
@@ -66,6 +67,9 @@ namespace Tlabs.Server.Auth {
 
         repo.Store.CommitChanges();
       });
+      //remove initial key if in cache
+      if (cache[options.initialKey] != null)
+        cache.Evict(options.initialKey);
 
       //create token and register with cache
       var keyToken= KeyToken.FromEntity(apiKey);
@@ -144,7 +148,9 @@ namespace Tlabs.Server.Auth {
             r.ValidFrom <= App.TimeInfo.Now
             && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
             && r.ValidityState == ApiKey.Status.ACTIVE.ToString()
-          ).FirstOrDefault(r =>
+          )
+          .AsEnumerable() //Load into memory since VerifyHashedPassword does not evaluate in DB
+          .FirstOrDefault(r =>
             um.PasswordHasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success
           );
         token= KeyToken.FromEntity(ent);
@@ -159,7 +165,7 @@ namespace Tlabs.Server.Auth {
 
     ///<inheritdoc/>
     public string GenerateKey() {
-      return generateRandomCryptographicKey(options.genKeyLength.HasValue ? options.genKeyLength.Value : 32);
+      return generateRandomCryptographicKey(options.genKeyLength ?? 32);
     }
 
     ///<summary>

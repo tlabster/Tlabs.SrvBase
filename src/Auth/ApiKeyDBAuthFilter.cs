@@ -17,7 +17,7 @@ namespace Tlabs.Server.Auth {
   ///<summary>Authorization filter to check for API keys stored in the database</summary>
   public class ApiKeyDBAuthFilter : BaseAuthFilter {
     readonly IApiKeyRegistry apiKeyRegistry;
-    Regex pathPattern;
+    readonly Regex pathPattern;
 
     ///<summary>Ctor</summary>
     public ApiKeyDBAuthFilter(IApiKeyRegistry apiKeyRegistry, IOptions<Options> options) {
@@ -54,7 +54,7 @@ namespace Tlabs.Server.Auth {
         // In case API is used set new principal in context to set current user to API key
         var identity= new ClaimsIdentity("Identity.ApiKey");
         identity.AddClaim(new Claim(ClaimTypes.Name, token.TokenName));
-        context.HttpContext.User= new System.Security.Claims.ClaimsPrincipal(
+        context.HttpContext.User= new ClaimsPrincipal(
           new List<ClaimsIdentity> { identity }
         );
 
@@ -98,7 +98,7 @@ namespace Tlabs.Server.Auth {
         svcColl.Configure<DefaultApiKeyRegistry.Options>(cfg.GetSection("config"));
         svcColl.AddSingleton<ApiKeyDBAuthFilter>();
         svcColl.AddSingleton<IApiKeyRegistry, DefaultApiKeyRegistry>();
-        ApiKeyDBAuthFilter.log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
+        log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
       }
     }
   }
