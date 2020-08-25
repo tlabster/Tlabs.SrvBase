@@ -70,7 +70,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to error</summary>
     protected void errorResult(AuthorizationFilterContext ctx, Exception e) {
-      log.LogCritical("Error in authorization process: ", e);
+      log.LogCritical(e, "Error in authorization process");
       var err= new JsonResult(new {
         success= false,
         error= ""
