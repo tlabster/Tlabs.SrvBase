@@ -13,8 +13,7 @@ namespace Tlabs.Server.Audit {
     public AuditLogFilter() { }
 
     ///<inheritdoc/>
-    public void OnException(ExceptionContext context)
-    {
+    public void OnException(ExceptionContext context) {
       // Store trail even in case an unhandled exception would happen
       App.WithServiceScope(scope => {
         var trail= scope.GetService<IAuditTrail>();
@@ -23,16 +22,19 @@ namespace Tlabs.Server.Audit {
     }
 
     ///<inheritdoc/>
-    public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
-    {
+    public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next) {
+      // Code here would happen before the action
+      await next();
+
+      // Code here would happen after the action
       App.WithServiceScope(scope => {
         var trail= scope.GetService<IAuditTrail>();
-
         var storeBody= context.Filters.Any(item => item is AuditRequestBodyAttribute);
 
+        // TODO: refactor storetrail to receive whole context and read error from context.Result
+        // TODO: refactor AbstractCover<T> to move error and success to an interface "IResultCover"
         trail.StoreTrail(context.HttpContext, storeBody);
       });
-      await next();
     }
 
     /// <summary>Configurator</summary>
