@@ -121,9 +121,5 @@ namespace Tlabs.Server.Audit {
       [nameof(Model.AuditRecord.Success)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Success) : q.OrderByDescending(m => m.Success)
     };
 
-    private class QueryResult<T> : IResultList<T> {
-      public int Total { get; set; }
-      public IList<T> Data { get; set; }
-    }
   }
 }
