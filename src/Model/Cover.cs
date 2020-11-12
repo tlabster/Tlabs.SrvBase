@@ -7,6 +7,27 @@ using Microsoft.Extensions.Logging;
 
 namespace Tlabs.Server.Model {
 
+  ///<summary>Error details.</summary>
+  public sealed class ErrorDetails {
+    ///<summary>Optional error details from <paramref name="e"/>.</summary>
+    public static ErrorDetails Optional(Exception e) {
+      var msgTmpl= e.MsgTemplate();
+      if (null == msgTmpl) return null;
+      return new ErrorDetails {
+        code= e.Source,
+        msgTemplate= msgTmpl,
+        msgData= e.TemplateData()
+      };
+    }
+    ///<summary>Technical error code to categorize or narrow the functional area affected by the error.</summary>
+    public string code { get; set; }
+    ///<summary>Error message template with the format defined with <see cref="ExceptionDataKey"/>.</summary>
+    ///<remarks>This could also be used as error key to lookup a localized or application specific description (template)</remarks>
+    public string msgTemplate { get; set; }
+    ///<summary>Optional detail data to be used to resolve placeholder values in a message template.</summary>
+    public IDictionary<string, object> msgData { get; set; }
+  }
+
   ///<summary>Abstract cover for returned model objects.</summary>
   public abstract class AbstractCover<T> {
     ///<summary>Logger.</summary>
@@ -19,13 +40,17 @@ namespace Tlabs.Server.Model {
     ///<summary>Any description of an error causing the model retrieval to fail.</summary>
     public string error { get; set; }
 
+    ///<summary>Any details of the error causing the model retrieval to fail.</summary>
+    public ErrorDetails errDetails { get; set; }
+
     ///<summary>Handle exception.</summary>
     protected virtual void handleException(Exception e, Func<Exception, string> provideErrMessage) {
       this.error= provideErrMessage?.Invoke(e);
       if (null == this.error) {
         this.error= $"Failed to return {typeof(T).Name}: ({e.Message}).";
-        log.LogError(0, e, this.error);
+        log.LogError(e, this.error);
       }
+      this.errDetails= ErrorDetails.Optional(e);
     }
   }
 

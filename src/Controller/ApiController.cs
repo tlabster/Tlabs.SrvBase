@@ -15,10 +15,16 @@ namespace Tlabs.Server.Controller {
     protected int? ResolvedStatusCode;
 
     ///<summary>Resolve API error code from exception.</summary>
+    protected virtual string resolveError(string errCode, Exception e, string msg0 = null) {
+      e.Source= errCode ?? e.Source;
+      return resolveError(e, msg0);
+    }
+
+    ///<summary>Resolve API error from exception.</summary>
     protected virtual string resolveError(Exception e, string msg0= null) {
       var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
-      var msg= msg0 ?? e.Message;
+      var msg= msg0;
 
       switch (e) {
         case DataEntityNotFoundException nfe:
@@ -28,12 +34,17 @@ namespace Tlabs.Server.Controller {
 
         case ArgumentNullException an:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? $"Missing required parameter '{an.ParamName}'";
+          msg= msg ?? an.SetMissingTemplateData("Missing required parameter '{paramName}'", an.ParamName ?? an.Message).ResolvedMsgTemplate();
           break;
+
+        case ArgumentOutOfRangeException re:
+          code= StatusCodes.Status400BadRequest;
+          msg= msg ?? re.SetMissingTemplateData("Value ({actualValue}) for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
+        break;
 
         case ArgumentException ae:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? ae.Message;
+          msg= msg ?? ae.SetMissingTemplateData("Invalid value for parameter '{paramName}'", ae.ParamName ?? ae.Message).ResolvedMsgTemplate();
         break;
 
         case KeyNotFoundException kn:
@@ -48,18 +59,18 @@ namespace Tlabs.Server.Controller {
 
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? $"Invalid parameter type ({ic.Message})";
+          msg= msg ?? ic.SetMissingTemplateData("Invalid parameter type ({type})", ic.Message).ResolvedMsgTemplate();
         break;
 
         case FormatException fe:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? $"Invalid parameter format ({fe.Message})";
+          msg= msg ?? fe.SetMissingTemplateData("Invalid parameter format ({format})", fe.Message).ResolvedMsgTemplate();
         break;
 
         default:
           if (null != e.InnerException)
-            return resolveError(e.InnerException, msg);
-          msg= "Unsupported internal state - please check with log.";
+            return resolveError(e.InnerException, msg ?? e.Message);
+          msg= e.SetTemplateData("Unsupported internal state - please check with log.").ResolvedMsgTemplate();
           log.LogError(e, "Error processing request ({msg}).", e.Message);
         break;
       }
