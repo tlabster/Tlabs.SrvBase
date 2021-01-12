@@ -70,7 +70,7 @@ namespace Tlabs.Server.Controller {
         default:
           if (null != e.InnerException)
             return resolveError(e.InnerException, msg ?? e.Message);
-          msg= e.SetTemplateData("Unsupported internal state - please check with log.").ResolvedMsgTemplate();
+          msg= e.SetMissingTemplateData("Unsupported internal state - please check with log.").ResolvedMsgTemplate();
           log.LogError(e, "Error processing request ({msg}).", e.Message);
         break;
       }
