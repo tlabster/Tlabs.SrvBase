@@ -40,17 +40,18 @@ namespace Tlabs.Server.Auth {
 
         if (param != null && param.GetType().IsGenericType && param.GetType().GetGenericTypeDefinition() == typeof(FilterParam<>)) {
           dynamic filter= ctx.ActionArguments[paramDesc.Name];
-          List<Filter> filters= filter.FilterList;
+          List<Filter> enforcedFilters= new List<Filter>(filter.FilterList);
 
-          var prop= filters.FirstOrDefault(x => x.property == name);
+          var prop= enforcedFilters.FirstOrDefault(x => x.property == name);
 
           if (null != prop) {
             // If user is filtering by this property with a different value, show him nothing
             prop.value= value.StartsWith(prop.value, StringComparison.OrdinalIgnoreCase) ? value : "#########";
           }
           else {
-            filters.Add(new Filter { property= name, value= value });
+            enforcedFilters.Add(new Filter { property= name, value= value });
           }
+          filter.FilterList= enforcedFilters;
         }
       }
     }

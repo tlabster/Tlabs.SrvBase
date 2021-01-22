@@ -48,33 +48,33 @@ namespace Tlabs.Server.Model {
   ///</remarks>
   public class FilterParam<TEntity> : PagingParam {
     static readonly IDynamicSerializer JSON= JsonFormat.CreateDynSerializer();
-    static readonly List<Filter> emptyFilter= new List<Filter>();
-    static readonly List<Sorter> emptySorter= new List<Sorter>();
-
-    private string filterStr;
     ///<summary>Filter list.</summary>
-    protected IList<Filter> filterList= emptyFilter;
+    private string filterStr;
     private string sorterStr;
     ///<summary>Sorter list.</summary>
-    protected IList<Sorter> sorterList= emptySorter;
 
+    ///<summary>Default ctor.</summary>
+    public FilterParam() {
+      this.FilterList= Enumerable.Empty<Filter>();
+      this.SorterList= Enumerable.Empty<Sorter>();
+    }
     ///<summary>filter string with format: <c>[{"property":"lastname","value":"aal","operator":"like"}]</c>.</summary>
     public string filter {
       get => filterStr;
-      set => this.filterList= (IList<Filter>)JSON.LoadObj(filterStr= value, typeof(IList<Filter>));
+      set => this.FilterList= (IList<Filter>)JSON.LoadObj(filterStr= value, typeof(IList<Filter>));
     }
 
     ///<summary>List of <see cref="Filter"/>(s).</summary>
-    public IList<Filter> FilterList => filterList;
+    public IEnumerable<Filter> FilterList { get; set; }
 
     ///<summary>sort string with format: <c>[{"property":"fieldName","direction":"ASC"}]</c>.</summary>
     public string sort {
       get { return sorterStr; }
-      set => this.sorterList= (IList<Sorter>)JSON.LoadObj(sorterStr= value, typeof(IList<Sorter>));
+      set => this.SorterList= (IList<Sorter>)JSON.LoadObj(sorterStr= value, typeof(IList<Sorter>));
     }
 
     ///<summary>List of <see cref="Sorter"/>(s).</summary>
-    public IList<Sorter> SorterList  => sorterList;
+    public IEnumerable<Sorter> SorterList { get; set;}
 
     /// <summary>Filters that are enforced</summary>
     public Dictionary<string, string> EnforcedFilters { get; set; }
@@ -84,7 +84,7 @@ namespace Tlabs.Server.Model {
                                            IDictionary<string, FilterExpression<TEntity>> filterMap,
                                            IDictionary<string, SorterExpression<TEntity>> sorterMap) {
 
-      if (null != filterList) foreach (var f in filterList) { //apply filter(s) to query
+      if (null != FilterList) foreach (var f in FilterList) { //apply filter(s) to query
         FilterExpression<TEntity> filter;
         if (filterMap.TryGetValue(f.property, out filter))
           query= filter(query, f);
@@ -97,7 +97,7 @@ namespace Tlabs.Server.Model {
         }
       }
 
-      if (null != sorterList) foreach (var s in sorterList) { // apply sorter(s) to query
+      if (null != SorterList) foreach (var s in SorterList) { // apply sorter(s) to query
         SorterExpression<TEntity> sorter;
         if (sorterMap.TryGetValue(s.property, out sorter))
           query= sorter(query, s);

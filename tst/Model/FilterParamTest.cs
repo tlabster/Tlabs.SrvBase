@@ -18,10 +18,7 @@ namespace Tlabs.Server.Model.Test {
     [Fact]
     public void BasicTest() {
 
-      var filter= new FilterParam<TestModel> {
-        filter= "[]",
-        sort= "[]"
-      };
+      var filter= new FilterParam<TestModel> { };
       Assert.Equal(0, filter.start);
       Assert.Equal(50, filter.limit);
       Assert.NotNull(filter.FilterList);
