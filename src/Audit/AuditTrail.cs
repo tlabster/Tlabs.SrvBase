@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
@@ -64,25 +65,35 @@ namespace Tlabs.Server.Audit {
     }
 
     ///<inheritdoc/>
-    public Model.AuditRecord StoreTrail(HttpContext context, bool storeBody= false, Exception exception = null) {
-      var request = context.Request;
-      var connection= context.Connection;
+    public Model.AuditRecord StoreTrail(FilterContext context, bool storeBody= false) {
+      var httpContext= context.HttpContext;
+      var request = httpContext.Request;
+      var connection= httpContext.Connection;
 
-      if(HttpMethods.IsGet(context.Request.Method)) return null;
+      if(HttpMethods.IsGet(httpContext.Request.Method)) return null;
 
-      var ident= context.User.Identity;
+      var ident= httpContext.User.Identity;
 
       var audit= new AuditRecord {
-        ActionName= context.GetRouteData().Values["Controller"].ToString() + "/" + context.GetRouteData().Values["Action"].ToString(),
+        ActionName= httpContext.GetRouteData().Values["Controller"].ToString() + "/" + httpContext.GetRouteData().Values["Action"].ToString(),
         IPAddress= connection.RemoteIpAddress.ToString(),
         URL= Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(request),
-        Method= context.Request.Method,
-        StatusCode= context.Response.StatusCode.ToString()
+        Method= httpContext.Request.Method,
+        StatusCode= httpContext.Response.StatusCode.ToString()
       };
 
-      if(null != exception) {
-        audit.Error= exception.Message;
-        audit.StatusCode= HttpStatusCode.InternalServerError.ToString();
+      if(context is ResultExecutingContext) {
+        var c= context as ResultExecutingContext;
+        var res= c.Result as Model.BaseCover;
+        if(null != res) {
+          audit.Error= res.error;
+
+          audit.Error= null != res.errDetails.msgData && res.errDetails.msgData.ContainsKey("joinedErrors") ?
+            res.errDetails.msgData["joinedErrors"] as string : res.error;
+        }
+      } else if(context is ExceptionContext) {
+        var c= context as ExceptionContext;
+        audit.Error= c.Exception.Message;
       }
 
       if((!audit.Success || storeBody) && null != request.Body && request.Body.CanSeek) {

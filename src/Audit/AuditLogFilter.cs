@@ -17,7 +17,7 @@ namespace Tlabs.Server.Audit {
       // Store trail even in case an unhandled exception would happen
       App.WithServiceScope(scope => {
         var trail= scope.GetService<IAuditTrail>();
-        trail.StoreTrail(context.HttpContext, true, context.Exception);
+        trail.StoreTrail(context, true);
       });
     }
 
@@ -31,9 +31,7 @@ namespace Tlabs.Server.Audit {
         var trail= scope.GetService<IAuditTrail>();
         var storeBody= context.Filters.Any(item => item is AuditRequestBodyAttribute);
 
-        // TODO: refactor storetrail to receive whole context and read error from context.Result
-        // TODO: refactor AbstractCover<T> to move error and success to an interface "IResultCover"
-        trail.StoreTrail(context.HttpContext, storeBody);
+        trail.StoreTrail(context, storeBody);
       });
     }
 

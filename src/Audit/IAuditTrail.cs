@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Mvc.Filters;
 using Tlabs.Data.Model;
 
 namespace Tlabs.Server.Audit {
@@ -9,6 +9,6 @@ namespace Tlabs.Server.Audit {
     IResultList<Model.AuditRecord> List(QueryFilter filter);
 
     ///<summary>Lists the audit trail history </summary>
-    Model.AuditRecord StoreTrail(HttpContext context, bool storeBody= false, System.Exception exception = null);
+    Model.AuditRecord StoreTrail(FilterContext context, bool storeBody= false);
   }
 }

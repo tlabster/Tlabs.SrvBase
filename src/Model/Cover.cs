@@ -28,11 +28,9 @@ namespace Tlabs.Server.Model {
     public IDictionary<string, object> msgData { get; set; }
   }
 
-  ///<summary>Abstract cover for returned model objects.</summary>
-  public abstract class AbstractCover<T> {
-    ///<summary>Logger.</summary>
-    protected static readonly ILogger log= App.Logger<AbstractCover<T>>();
 
+  ///<summary>Base cover for returned model objects.</summary>
+  public abstract class BaseCover {
     ///<summary>True if requested model could be successfully returned.</summary>
     public bool success {
       get { return string.IsNullOrEmpty(error); }
@@ -42,6 +40,12 @@ namespace Tlabs.Server.Model {
 
     ///<summary>Any details of the error causing the model retrieval to fail.</summary>
     public ErrorDetails errDetails { get; set; }
+  }
+
+  ///<summary>Abstract cover for returned model objects.</summary>
+  public abstract class AbstractCover<T> : BaseCover {
+    ///<summary>Logger.</summary>
+    protected static readonly ILogger log= App.Logger<AbstractCover<T>>();
 
     ///<summary>Handle exception.</summary>
     protected virtual void handleException(Exception e, Func<Exception, string> provideErrMessage) {
@@ -131,7 +135,7 @@ namespace Tlabs.Server.Model {
       public IQueryable<T1> query;
       ///<summary>Selector expression from T1 to M1</summary>
       protected Expression<Func<T1, M1>> selector;
-      
+
       ///<summary>Ctor from <paramref name="query"/> and <paramref name="selector"/>.</summary>
       public QueryProjector(IQueryable<T1> query, Expression<Func<T1, M1>> selector) {
         this.query= query;
@@ -191,7 +195,7 @@ namespace Tlabs.Server.Model {
       var p= new PageProjector<T, M>(query, selector, this);
       execQuery(p);
     }
-    
+
     ///<summary>Total (unlimited) result count.</summary>
     public int total { get; protected set; }
 
