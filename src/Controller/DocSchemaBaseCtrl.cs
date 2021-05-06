@@ -40,7 +40,7 @@ namespace Tlabs.Server.Controller {
       using (var respWr = new StreamWriter(resp.Body, Encoding.UTF8)) {
         try {
           var defStreams= CreateSchemaDefStreams(xml_file, html_file, css_file, xls_file);
-          schemaRepo.CreateFromStreams<AbstractDocument>(defStreams, docProcRepo);
+          schemaRepo.CreateFromStreams(defStreams, docProcRepo);
         }
         catch (Exception e) {
           log.LogError(0, e, "Schema upload failed.");
@@ -65,7 +65,7 @@ namespace Tlabs.Server.Controller {
 
       if (null != defStreams.CalcModel) {
         //check for possible base64 encoding
-        if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.InvariantCultureIgnoreCase))
+        if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.OrdinalIgnoreCase))
           using (var rd = new StreamReader(defStreams.CalcModel))
             defStreams.CalcModel= new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
       }
@@ -80,6 +80,7 @@ namespace Tlabs.Server.Controller {
     ///otherwise the form HTML is returned.
     ///</remarks>
     //[GET] api/DocSchema/form/{typeId}
+    [Obsolete("Use formIntern method with one callback parameter.", false)]
     protected void FormIntern(string typeId, string form, Func<string, Stream> formDataStream, Func<string, Stream> styleDataStream) {
       var resp= this.Response;
       try {
@@ -98,5 +99,28 @@ namespace Tlabs.Server.Controller {
       }
     }
 
+    ///<summary>Returns <see cref="DocumentSchema"/> form-data based on <paramref name="typeId"/>.</summary>
+    ///<remarks>
+    ///If the given typeId starts with 'styles.css?form=' the forms CSS is returned,
+    ///otherwise the form HTML is returned.
+    ///</remarks>
+    //[GET] api/DocSchema/form/{typeId}
+    protected void FormIntern(string typeId, string form, Func<string, SchemaDefinitionStreams.Data, Stream> schemaStream) {
+      var resp= this.Response;
+      try {
+        if (STYLE_DATA == typeId.ToLowerInvariant()) {
+          typeId= form;
+          resp.ContentType= "text/css; charset=utf-8";
+          schemaStream(typeId, SchemaDefinitionStreams.Data.Style).CopyTo(resp.Body);
+          return;
+        }
+
+        resp.ContentType= "text/html; charset=utf-8";
+        schemaStream(typeId, SchemaDefinitionStreams.Data.Markup).CopyTo(resp.Body);
+      }
+      catch (Exception e) {
+        this.resolveError(e);
+      }
+    }
   }
 }

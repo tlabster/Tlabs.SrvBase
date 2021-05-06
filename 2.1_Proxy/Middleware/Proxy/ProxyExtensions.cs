@@ -94,6 +94,8 @@ namespace Tlabs.Middleware.Proxy {
                 httpCtx.DisposeProxyMessage();
               }
             });
+            //https://docs.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-5.0
+            //https://andrewlock.net/adding-an-endpoint-graph-to-your-aspnetcore-application/
             proxyApp.UseMvc();
           });
         }

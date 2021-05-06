@@ -39,7 +39,7 @@ namespace Tlabs.Server.Auth {
 
       if (1 == authorize.Count) {
         var authParts= authorize[0].Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.InvariantCultureIgnoreCase))
+        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
           key= authParts[1];
       }
       if (   pathPattern.IsMatch(route)

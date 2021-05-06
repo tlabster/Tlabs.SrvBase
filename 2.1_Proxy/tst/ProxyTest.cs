@@ -63,7 +63,7 @@ namespace Tlabs.Middleware.Proxy.Test {
         services.AddApiClient();
       }
 
-      public void Configure(IApplicationBuilder app, IHostingEnvironment env) {
+      public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
 
         var proxyCfg= new ApiProxyConfigurator(new Dictionary<string, string> {
           /** Match all PC APIs but Member & Promotion

@@ -8,20 +8,18 @@ using Tlabs.Data;
 namespace Tlabs.Server.Controller {
 
   ///<summary>API action base controller.</summary>
-  public class ApiCtrl : Microsoft.AspNetCore.Mvc.Controller {
+  public class ApiCtrl : Microsoft.AspNetCore.Mvc.ControllerBase {
     static readonly ILogger log= Tlabs.App.Logger<ApiCtrl>();
 
     ///<summary>Resolved status code.</summary>
     protected int? ResolvedStatusCode;
 
-    ///<summary>Resolve API error code from exception.</summary>
-    protected virtual string resolveError(string errCode, Exception e, string msg0 = null) {
-      e.Source= errCode ?? e.Source;
-      return resolveError(e, msg0);
-    }
+    ///<summary>Unique descriptor of the currently executing action.</summary>
+    public string ActionRoute => $"{ControllerContext.ActionDescriptor?.ControllerName}/{ControllerContext.ActionDescriptor?.ActionName}";
 
     ///<summary>Resolve API error from exception.</summary>
     protected virtual string resolveError(Exception e, string msg0= null) {
+      e.Source= ActionRoute;
       var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
       var msg= msg0;

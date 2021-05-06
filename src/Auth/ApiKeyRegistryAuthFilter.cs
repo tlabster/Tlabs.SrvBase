@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Security.Claims;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -9,18 +11,16 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 using Tlabs.Config;
-using System.Security.Claims;
-using System.Collections.Generic;
-using System.Security.Principal;
+using Tlabs.Identity;
 
 namespace Tlabs.Server.Auth {
-  ///<summary>Authorization filter to check for API keys stored in the database</summary>
-  public class ApiKeyDBAuthFilter : BaseAuthFilter {
+  ///<summary>Authorization filter to check for API keys from <see cref="IApiKeyRegistry"/>.</summary>
+  public class ApiKeyRegistryAuthFilter : BaseAuthFilter {
     readonly IApiKeyRegistry apiKeyRegistry;
     readonly Regex pathPattern;
 
     ///<summary>Ctor</summary>
-    public ApiKeyDBAuthFilter(IApiKeyRegistry apiKeyRegistry, IOptions<Options> options) {
+    public ApiKeyRegistryAuthFilter(IRolesAdministration rolesAdm, IApiKeyRegistry apiKeyRegistry, IOptions<Options> options) : base(rolesAdm) {
       this.apiKeyRegistry= apiKeyRegistry;
       this.pathPattern= new Regex(options.Value.pathPolicy, RegexOptions.Compiled);
     }
@@ -75,7 +75,7 @@ namespace Tlabs.Server.Auth {
       var authorize= context.HttpContext.Request.Headers[HEADER_AUTH_KEY];
       if (1 == authorize.Count) {
         var authParts= authorize[0].Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.InvariantCultureIgnoreCase))
+        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
           key= authParts[1];
       }
 
@@ -95,9 +95,9 @@ namespace Tlabs.Server.Auth {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.Configure<Options>(cfg.GetSection("config"));
-        svcColl.Configure<DefaultApiKeyRegistry.Options>(cfg.GetSection("config"));
-        svcColl.AddSingleton<ApiKeyDBAuthFilter>();
-        svcColl.AddSingleton<IApiKeyRegistry, DefaultApiKeyRegistry>();
+        svcColl.Configure<Identity.Intern.SingletonApiKeyDataStoreRegistry.Options>(cfg.GetSection("config"));
+        svcColl.AddSingleton<ApiKeyRegistryAuthFilter>();
+        svcColl.AddSingleton<IApiKeyRegistry, Identity.Intern.SingletonApiKeyDataStoreRegistry>();
         log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
       }
     }

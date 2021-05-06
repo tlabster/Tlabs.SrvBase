@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Linq;
-using System.Net.Http;
 using System.Collections.Generic;
 
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
-using Tlabs.Dynamic;
 using Tlabs.Middleware.Proxy;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;

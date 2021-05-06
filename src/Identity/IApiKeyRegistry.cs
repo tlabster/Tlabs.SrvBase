@@ -3,7 +3,7 @@
 using System;
 using Tlabs.Server.Model;
 
-namespace Tlabs.Server.Auth {
+namespace Tlabs.Identity {
 
   ///<summary>Registry for managing API Keys</summary>
   public interface IApiKeyRegistry {

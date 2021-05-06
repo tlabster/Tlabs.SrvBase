@@ -8,13 +8,12 @@ using Tlabs.Data.Entity;
 using Microsoft.AspNetCore.Identity;
 using Task = System.Threading.Tasks.Task;
 
-namespace Tlabs.Server.Identity {
+namespace Tlabs.Identity.Intern {
 
   ///<summary>>see cref="User"/> spcific repository implementation.</summary>
-  public class UserIdentityStore : IUserStore<User>, IUserPasswordStore<User>, IUserEmailStore<User>, IUserRoleStore<User> {
-    private bool _disposed;
-
+  public class UserIdentityStore : IUserStore<User>, IQueryableUserStore<User>, IUserPasswordStore<User>, IUserEmailStore<User>, IUserRoleStore<User> {
     private IRepo<User> repo;
+
     /// <summary>
     /// Ctor from user repo
     /// </summary>
@@ -22,6 +21,9 @@ namespace Tlabs.Server.Identity {
     public UserIdentityStore(IRepo<User> repo) {
       this.repo= repo;
     }
+
+    /// <inherit/>
+    public IQueryable<User> Users => repo.AllUntracked;
 
     /// <inherit/>
     public Task<IdentityResult> CreateAsync(User user, CancellationToken cancellationToken) {
@@ -220,17 +222,14 @@ namespace Tlabs.Server.Identity {
     }
 
     /// <inherit/>
-    public void Dispose() {
-      _disposed= true;
-    }
+    public void Dispose() => this.repo= null;
 
     /// <summary>
     /// Throws an exception if the object was already disposed
     /// </summary>
     protected void ThrowIfDisposed() {
-      if (_disposed) {
-        throw new ObjectDisposedException(GetType().Name);
-      }
+      if (null == repo) throw new ObjectDisposedException(nameof(UserIdentityStore));
     }
+
   }
 }
