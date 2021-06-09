@@ -138,7 +138,8 @@ namespace Tlabs.Identity.Intern {
     }
 
     void assignRoles(Data.Entity.User usrEnt, IEnumerable<string> usrRoles) {
-      usrRoles= usrRoles ?? Enumerable.Empty<string>();
+      if(usrRoles == null)
+        return;
 
       var existingRefs= store.Query<Data.Entity.User.RoleRef>()
                              .Where(@ref => @ref.User.UserName == usrEnt.UserName);
