@@ -3,7 +3,6 @@ using System.Security.Claims;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,8 +27,7 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public override void OnAuthorization(AuthorizationFilterContext context) {
       try {
-        // Skip filter if header is marked as anonymous
-        if (context.Filters.Any(item => item is IAllowAnonymousFilter)) return;
+        if(isAnonymous(context)) return;
 
         // Skip filter if header does not contain an api header
         if (!context.HttpContext.Request.Headers.ContainsKey(HEADER_AUTH_KEY)) {
