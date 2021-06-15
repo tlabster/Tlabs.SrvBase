@@ -27,8 +27,6 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public override void OnAuthorization(AuthorizationFilterContext context) {
       try {
-        if(isAnonymous(context)) return;
-
         // Skip filter if header does not contain an api header
         if (!context.HttpContext.Request.Headers.ContainsKey(HEADER_AUTH_KEY)) {
           // If no other filter is set also return unauthorized
