@@ -50,6 +50,9 @@ namespace Tlabs.Server.Auth {
         // In case API is used set new principal in context to set current user to API key
         var identity= new ClaimsIdentity("Identity.ApiKey");
         identity.AddClaim(new Claim(ClaimTypes.Name, token.TokenName));
+        if(token.Roles != null)
+          foreach(var role in token.Roles)
+            identity.AddClaim(new Claim(ClaimTypes.Role, role));
         context.HttpContext.User= new ClaimsPrincipal(
           new List<ClaimsIdentity> { identity }
         );
