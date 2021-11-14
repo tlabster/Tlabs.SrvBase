@@ -8,13 +8,19 @@ using Microsoft.Extensions.Logging;
 using Tlabs;
 using Tlabs.Config;
 using Tlabs.Data;
-using Tlabs.Data.Entity;
+using Tlabs.Data.Model;
+using Tlabs.Identity;
 using Tlabs.Server.Model;
 
 namespace Tlabs.Server.Auth {
   ///<summary>Filter that </summary>
   public class RoleDefaultParamsFilter : IActionFilter {
     private static readonly ILogger log= Tlabs.App.Logger<RoleDefaultParamsFilter>();
+    IRolesAdministration rolesAdm;
+
+    ///<summary>Ctor from <paramref name="rolesAdm"/>. </summary>
+    public RoleDefaultParamsFilter(IRolesAdministration rolesAdm) => this.rolesAdm= rolesAdm;
+
     ///<inheritdoc/>
     public void OnActionExecuted(ActionExecutedContext context) {
       // Empty
@@ -61,28 +67,19 @@ namespace Tlabs.Server.Auth {
       if (null == idSrvc.Name) return null;
 
       var currentRoles= idSrvc.Roles;
-      var roles= currentRoles.Where(x => null != x).Select(x => Role.Cache[x, loadRole(x)]);
+      var roles= currentRoles.Where(x => null != x).Select(x => rolesAdm.GetByName(x));
 
-      var role= roles.FirstOrDefault(r => r.AllowAccessPattern != null);
+      var role= roles.FirstOrDefault(r => r.AllowedRoutes != null);
 
       if (role == null) return null;
       return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo.Template.ToLower());
-    }
-
-    private Role loadRole(string name) {
-      Role role= null;
-      App.WithServiceScope(prov => {
-        var repo= (IRepo<Role>)prov.GetService(typeof(IRepo<Role>));
-        role= repo.AllUntracked.Single(x => x.Name == name);
-      });
-      return role;
     }
 
     /// <summary>Configurator</summary>
     public class Configurator : IConfigurator<IServiceCollection> {
       /// <inheritoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
-        svcColl.AddSingleton(new RoleDefaultParamsFilter());
+        svcColl.AddSingleton<RoleDefaultParamsFilter>();
       }
     }
   }

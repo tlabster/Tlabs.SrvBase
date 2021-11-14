@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel;
-using Microsoft.AspNetCore.Server.Kestrel.Https;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tlabs.Config {
 
@@ -45,9 +45,18 @@ namespace Tlabs.Config {
     ///<summary>Adds the Kestrel configuration to the <paramref name="target"/>.</summary>
     public void AddTo(IWebHostBuilder target, IConfiguration cfg) {
       string cfgVal;
+      target.ConfigureServices(services => {
+        var optConfig= cfg.GetSection("options");
+        services.Configure<KestrelServerOptions>(optConfig);
+      });
       target.UseKestrel(opt => {
+#if BROKEN
+        var optConfig= cfg.GetSection("options");
+        opt.Configure(optConfig).Load();      //this does not work
+#endif
+        opt.AllowSynchronousIO= true;
         opt.AddServerHeader= false;
-        if(config.TryGetValue(CERTFILE_KEY, out cfgVal)) {
+        if (config.TryGetValue(CERTFILE_KEY, out cfgVal)) {
           string certPwd= null;
           if (config.TryGetValue(CERTPWD_KEY, out certPwd))
             opt.ListenAnyIP(443, lop => lop.UseHttps(cfgVal, certPwd));
@@ -56,12 +65,7 @@ namespace Tlabs.Config {
         }
       });
 
-      if (config.TryGetValue(URLS_KEY, out cfgVal))
-        target.UseUrls(cfgVal);
-      /*  Apply webHosting configuration before IIS integration!
-       */
-      target.UseConfiguration(cfg)
-            .UseIISIntegration();
+      target.UseIISIntegration();
     }
   }
 }

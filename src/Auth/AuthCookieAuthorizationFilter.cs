@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 using Tlabs.Config;
-using Microsoft.AspNetCore.Mvc.Authorization;
+using Tlabs.Identity;
 
 namespace Tlabs.Server.Auth {
   /// <summary>Enforces the role authorization</summary>
   public class AuthCookieAuthorizationFilter : BaseAuthFilter {
+    /// <summary>Ctor form <paramref name="rolesAdm"/>.</summary>
+    public AuthCookieAuthorizationFilter(IRolesAdministration rolesAdm) : base(rolesAdm) { }
 
     /// <inheritoc/>
     public override void OnAuthorization(AuthorizationFilterContext context) {
       try {
-        // Skip filter if header is marked as anonymous or apiKey was provided and filter did not short circuit the pipeline
-        if (context.Filters.Any(item => item is IAllowAnonymousFilter) || context.HttpContext.Request.Headers[HEADER_AUTH_KEY].Any()) {
-          return;
-        }
+        if(isAnonymous(context) || context.HttpContext.Request.Headers[HEADER_AUTH_KEY].Any()) return;
 
         var idSrvc= (Tlabs.Identity.IIdentityAccessor)App.ServiceProv.GetService(typeof(Tlabs.Identity.IIdentityAccessor));
         if (idSrvc.Name == null) {
@@ -38,7 +38,7 @@ namespace Tlabs.Server.Auth {
       /// <inheritoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         var log= App.Logger<Configurator>();
-        svcColl.AddSingleton(new AuthCookieAuthorizationFilter());
+        svcColl.AddSingleton<AuthCookieAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(AuthCookieAuthorizationFilter));
       }
     }

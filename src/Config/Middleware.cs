@@ -5,14 +5,26 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Tlabs.Config {
 
-    ///<summary>Configures static file middleware.</summary>
-    public class StaticContentConfigurator : IConfigurator<MiddlewareContext> {
+  ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
+  public class MiddlewareContext {
+    ///<summary>Web hosting environment</summary>
+    public IWebHostEnvironment HostingEnv { get; set; }
+    ///<summary>Application builder to be configured.</summary>
+    public IApplicationBuilder AppBuilder { get; set; }
+  }
+
+  ///<summary>Configurator to add additional assembly path(s).</summary>
+  public class WebHostAsmPathConfigurator : AssemblyPathConfigurator<IWebHostBuilder> { }
+
+
+  ///<summary>Configures static file middleware.</summary>
+  public class StaticContentConfigurator : IConfigurator<MiddlewareContext> {
     private ILogger log;
     IDictionary<string, string> config;
     ///<summary>Default ctor.</summary>
@@ -32,14 +44,14 @@ namespace Tlabs.Config {
       string dfltPage;
       if (config.TryGetValue("defaultPage", out dfltPage) && !string.IsNullOrEmpty(dfltPage)) {
         string[] dfltPages= dfltPage.Split(',');
-        log.LogDebug("Default page(s) are: '{defaultPages}'", string.Join(",", dfltPages));
+        log.LogInformation("Default page(s) are: '{defaultPages}'", string.Join(",", dfltPages));
         mware.AppBuilder.UseDefaultFiles(new DefaultFilesOptions() {
           DefaultFileNames= dfltPages
         });
       }
 
       mware.AppBuilder.UseStaticFiles(); //from HostingEnv.WebRootPath
-      log.LogDebug("Serving static content from: '{webroot}'", mware.HostingEnv.WebRootPath);
+      log.LogInformation("Serving static content from: '{webroot}'", mware.HostingEnv.WebRootPath);
 
       foreach( var pair in config.Where(p => p.Key.StartsWith("/"))) {
         var contPath= Path.Combine(App.ContentRoot, pair.Value);
@@ -51,7 +63,7 @@ namespace Tlabs.Config {
           RequestPath= new PathString(pair.Key),
           FileProvider= new PhysicalFileProvider(contPath)
         });
-        log.LogDebug("Serving static content from {path}: '{physical}'", pair.Key, pair.Value);
+        log.LogInformation("Serving static content from {path}: '{physical}'", pair.Key, pair.Value);
       }
     }
   }
@@ -74,8 +86,10 @@ namespace Tlabs.Config {
 
     ///<inherit/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
-      mware.AppBuilder.UseAuthentication();
-      mware.AppBuilder.UseMvc();
+      var appBuilder= mware.AppBuilder;
+      appBuilder.UseRouting();
+      appBuilder.UseAuthentication();
+      appBuilder.UseEndpoints(endppints => endppints.MapControllers());
     }
   }
 

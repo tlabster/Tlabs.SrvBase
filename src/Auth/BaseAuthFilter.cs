@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
+using Tlabs.Identity;
 
 namespace Tlabs.Server.Auth {
   ///<summary>Enforces the role authorization</summary>
@@ -15,10 +17,25 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Key used by the token auth mechanism</summary>
     protected const string HEADER_AUTH_KEY= "Authorization";
+    IRolesAdministration rolesAdm;
+    ///<summary>Ctor from <paramref name="rolesAdm"/>.</summary>
+    public BaseAuthFilter(IRolesAdministration rolesAdm) => this.rolesAdm= rolesAdm;
 
     ///<summary>Defaults to forbidden if no other filter allows</summary>
     public virtual void OnAuthorization(AuthorizationFilterContext context) {
       unauthorized(context);
+    }
+
+    ///<summary>Checks if the current request is allowed for anonymous</summary>
+    protected bool isAnonymous(AuthorizationFilterContext context) {
+      /* When doing endpoint routing, MVC does not add AllowAnonymousFilters for AllowAnonymousAttributes that
+        * were discovered on controllers and actions.
+        * As a workaround we check for the presence of IAllowAnonymous in endpoint metadata.
+        * (https://docs.microsoft.com/en-us/dotnet/core/compatibility/aspnetcore#authorization-iallowanonymous-removed-from-authorizationfiltercontextfilters)
+        * Skip filter if header is marked as anonymous or apiKey was provided and filter did not short circuit the pipeline
+        */
+      var endPoint= context.HttpContext.GetEndpoint();
+      return null != endPoint?.Metadata?.GetMetadata<IAllowAnonymous>();
     }
 
     ///<summary>Checks if any of the given roles has access to the current URL</summary>
@@ -30,7 +47,7 @@ namespace Tlabs.Server.Auth {
 
       var route= context.ActionDescriptor.AttributeRouteInfo.Template.ToLower();
       var method= context.HttpContext.Request.Method.ToUpper();
-      var roles= currentRoles.Select(x => Role.Cache[x, loadRole(x)]);
+      var roles= currentRoles.Select(r => rolesAdm.GetByName(r));
 
       if (roles.Any(role => role.AllowsAction(method, route))) return true;
       return false;
@@ -47,6 +64,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to forbidden</summary>
     protected void forbidden(AuthorizationFilterContext ctx) {
+      if(isAnonymous(ctx)) return;
       log.LogInformation("Forbidden access: {path}", ctx.HttpContext.Request.Path);
 
       var err= new JsonResult(new {
@@ -59,6 +77,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to unauthorized</summary>
     protected void unauthorized(AuthorizationFilterContext ctx) {
+      if(isAnonymous(ctx)) return;
       log.LogInformation("Unauthorized access: {path}", ctx.HttpContext.Request.Path);
       var err= new JsonResult(new {
         success= false,

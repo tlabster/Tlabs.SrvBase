@@ -7,11 +7,9 @@ using Tlabs.Data.Entity;
 using Microsoft.AspNetCore.Identity;
 using Task = System.Threading.Tasks.Task;
 
-namespace Tlabs.Server.Identity {
+namespace Tlabs.Identity.Intern {
   ///<summary>User roles store</summary>
-  public class UserRoleStore : IRoleStore<Role> {
-    private bool _disposed;
-
+  public class UserRoleStore : IRoleStore<Role>, IQueryableRoleStore<Role> {
     /// <summary>Role repository</summary>
     public IRepo<Role> repo;
 
@@ -22,6 +20,9 @@ namespace Tlabs.Server.Identity {
     public UserRoleStore(IRepo<Role> repo) {
       this.repo= repo;
     }
+
+    /// <inherit/>
+    public IQueryable<Role> Roles => repo.AllUntracked;
 
     /// <inherit/>
     public Task<IdentityResult> CreateAsync(Role role, CancellationToken cancellationToken) {
@@ -104,18 +105,14 @@ namespace Tlabs.Server.Identity {
       return Task.FromResult(IdentityResult.Success);
     }
 
+    /// <inherit/>
+    public void Dispose() => this.repo= null;
+
     /// <summary>
     /// Throws an exception if the object was already disposed
     /// </summary>
     protected void ThrowIfDisposed() {
-      if (_disposed) {
-        throw new ObjectDisposedException(GetType().Name);
-      }
-    }
-
-    /// <inherit/>
-    public void Dispose() {
-      _disposed= true;
+      if (null == repo) throw new ObjectDisposedException(nameof(UserRoleStore));
     }
   }
 }

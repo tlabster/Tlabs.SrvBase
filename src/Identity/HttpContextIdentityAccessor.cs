@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 using Tlabs.Identity;
 
-namespace Tlabs.Server.Identity {
+namespace Tlabs.Identity {
 
   ///<summary>Accessor retuning the current identity registered with the HttpContext.</summary>
   public class HttpContextIdentityAccessor : SysIdentityAccessor {

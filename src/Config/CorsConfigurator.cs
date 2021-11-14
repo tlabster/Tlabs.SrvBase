@@ -117,10 +117,10 @@ namespace Tlabs.Config {
         if (null != AllowedExposedHeaders) pb.WithExposedHeaders(AllowedExposedHeaders);
 
         if (AllowAnyMethod) pb.AllowAnyMethod();
-        else if (null != AllowedMethods) pb.WithHeaders(AllowedMethods);
+        else if (null != AllowedMethods) pb.WithMethods(AllowedMethods);
 
         if (AllowAnyOrigin) pb.AllowAnyOrigin();
-        else if (null != AllowedOrigins) pb.WithHeaders(AllowedOrigins);
+        else if (null != AllowedOrigins) pb.WithOrigins(AllowedOrigins);
 
         return pb;
       }

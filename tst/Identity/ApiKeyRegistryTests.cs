@@ -12,8 +12,7 @@ using Tlabs.Server.Model;
 using Xunit;
 
 
-namespace Tlabs.Server.Controller.Test
-{
+namespace Tlabs.Identity.Intern.Test {
 
   public class DefaultApiKeyRegistryTests : IClassFixture<DefaultApiKeyRegistryTests.Fixture> {
     public class MockPasswordHasher : IPasswordHasher<User> {
@@ -27,20 +26,16 @@ namespace Tlabs.Server.Controller.Test
       public const string GENERATED_KEY= "GENERATED_KEY";
       public IApiKeyRegistry ApiKeyRegistry { get; }
       public IRepo<ApiKey> ApiKeyRepo { get; }
-      public UserManager<User> UserManager { get; }
       public IList<ApiKey> DataStore { get; }
       public IPasswordHasher<User> PasswordHasher { get; }
       public IServiceProvider SvcProvider { get; }
       public IServiceProvider SvcProviderScope { get; set; }
       public IServiceScope SvcScope { get; }
       public IServiceScopeFactory SvcScopeFactory { get; }
-      public IOptions<DefaultApiKeyRegistry.Options> Options { get; }
+      public IOptions<SingletonApiKeyDataStoreRegistry.Options> Options { get; }
       public Fixture() {
         this.PasswordHasher= new MockPasswordHasher();
         var store = new Mock<IUserStore<User>>();
-        var userManagerMock = new Mock<UserManager<User>>(store.Object, null, null, null, null, null, null, null, null);
-        userManagerMock.Object.PasswordHasher= this.PasswordHasher;
-        UserManager= userManagerMock.Object;
 
         var role= new Role {
           Name= "Admin"
@@ -153,6 +148,8 @@ namespace Tlabs.Server.Controller.Test
 
 
         var apiKeyRepoMock= new Mock<IRepo<ApiKey>>();
+        apiKeyRepoMock.Setup(s => s.All)
+                      .Returns(this.DataStore.AsQueryable());
         apiKeyRepoMock.Setup(s => s.AllUntracked)
                       .Returns(this.DataStore.AsQueryable());
 
@@ -173,7 +170,7 @@ namespace Tlabs.Server.Controller.Test
         this.ApiKeyRepo= apiKeyRepoMock.Object;
 
         var svcProvScp= new Mock<IServiceProvider>();
-        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(UserManager<User>)))).Returns(this.UserManager);
+        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IPasswordHasher<User>)))).Returns(this.PasswordHasher);
         svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IRepo<ApiKey>)))).Returns(this.ApiKeyRepo);
         this.SvcProviderScope= svcProvScp.Object;
 
@@ -191,8 +188,8 @@ namespace Tlabs.Server.Controller.Test
 
         App.ServiceProv= this.SvcProvider;
 
-        var options= new Mock<IOptions<DefaultApiKeyRegistry.Options>>();
-        options.Setup(o => o.Value).Returns(new DefaultApiKeyRegistry.Options {
+        var options= new Mock<IOptions<SingletonApiKeyDataStoreRegistry.Options>>();
+        options.Setup(o => o.Value).Returns(new SingletonApiKeyDataStoreRegistry.Options {
           initialKey= Guid.Empty.ToString(),
           initialTokenName= "INITIAL",
           initialValidHours= 1,
@@ -200,7 +197,7 @@ namespace Tlabs.Server.Controller.Test
         });
         this.Options= options.Object;
 
-        this.ApiKeyRegistry= new DefaultApiKeyRegistry(this.Options);
+        this.ApiKeyRegistry= new SingletonApiKeyDataStoreRegistry(this.Options);
       }
     }
 
@@ -286,8 +283,8 @@ namespace Tlabs.Server.Controller.Test
         }, key
       );
       Assert.NotNull(token);
-      Assert.True(token.TokenName == key);
-      Assert.True(token.Description == key);
+      Assert.Equal(key, token.TokenName);
+      Assert.Equal(key, token.Description);
 
       token= registry.VerifiedKey(key);
       Assert.NotNull(token);
@@ -295,7 +292,7 @@ namespace Tlabs.Server.Controller.Test
 
       token= registry.Deregister(key);
       Assert.NotNull(token);
-      Assert.True(token.TokenName == key);
+      Assert.NotEqual(key, token.TokenName);  //TokenName must be changed
 
       token= registry.VerifiedKey(key);
       Assert.Null(token);

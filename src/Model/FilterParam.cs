@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Tlabs.Data.Model;
 using Tlabs.Data.Serialize;
 using Tlabs.Data.Serialize.Json;
 
@@ -20,22 +21,17 @@ namespace Tlabs.Server.Model {
 
     ///<summary>Page start index.</summary>
     public int? start {
-      get { return st ?? DEFAULT_START; }
-      set { st= value; }
+      get => st ?? DEFAULT_START;
+      set => st= value;
     }
 
     ///<summary>Page size.</summary>
     public int? limit {
-      get { return lim ?? DEFAULT_LIMIT; }
-      set { lim= value; }
+      get => lim ?? DEFAULT_LIMIT;
+      set => lim= value;
     }
 
   }
-
-  ///<summary>Delegate function to add a filter to <c>IQueryable&lt;T&gt;</c>.</summary>
-  public delegate IQueryable<T> FilterExpression<T>(IQueryable<T> q, Filter f);
-  ///<summary>Delegate function to add a soter to <c>IQueryable&lt;T&gt;</c>.</summary>
-  public delegate IQueryable<T> SorterExpression<T>(IQueryable<T> q, Sorter s);
 
   ///<summary>Filter parameter model to be bound via MVC model binding.</summary>
   ///<remarks>This filter parameter model is aimed to bind a request like:
@@ -79,31 +75,15 @@ namespace Tlabs.Server.Model {
     /// <summary>Filters that are enforced</summary>
     public Dictionary<string, string> EnforcedFilters { get; set; }
 
-    ///<summary>Apply this filter parameters to the <paramref name="query"/>.</summary>
-    public IQueryable<TEntity> ApplyFilter(IQueryable<TEntity> query,
-                                           IDictionary<string, FilterExpression<TEntity>> filterMap,
-                                           IDictionary<string, SorterExpression<TEntity>> sorterMap) {
+    /// <summary>Return <see cref="QueryFilter"/> from this filter parameter(s).</summary>
+    public QueryFilter AsQueryFilter()
+      => new QueryFilter {
+        Start= this.start,
+        Limit= this.limit,
+        Properties= this.FilterList.ToDictionary(f => f.property, f => (IConvertible)f.value),
+        SortAscBy= this.SorterList.ToDictionary(s => s.property, s => s.IsAscSort())
+      };
 
-      if (null != FilterList) foreach (var f in FilterList) { //apply filter(s) to query
-        FilterExpression<TEntity> filter;
-        if (filterMap.TryGetValue(f.property, out filter))
-          query= filter(query, f);
-      }
-
-      if (null != EnforcedFilters) foreach (var f in EnforcedFilters) { //apply filter(s) to query
-        FilterExpression<TEntity> filter;
-        if (filterMap.TryGetValue(f.Key, out filter)) {
-            query= filter(query, new Filter {property= f.Key, value= f.Value});
-        }
-      }
-
-      if (null != SorterList) foreach (var s in SorterList) { // apply sorter(s) to query
-        SorterExpression<TEntity> sorter;
-        if (sorterMap.TryGetValue(s.property, out sorter))
-          query= sorter(query, s);
-      }
-      return query;
-    }
   }
 
   ///<summary>Filter descriptor.</summary>
@@ -127,10 +107,6 @@ namespace Tlabs.Server.Model {
 
     ///<summary>Check for ASC sort direction.</summary>
     public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
-
-    ///<summary>Add sorter by <paramref name="prop">property selector</paramref> (of type <typeparamref name="P"/>) to <paramref name="query"/>.</summary>
-    public IQueryable<T> Add<T, P>(IQueryable<T> query, System.Linq.Expressions.Expression<Func<T, P>> prop) {
-      return IsAscSort() ? query.OrderBy(prop) : query.OrderByDescending(prop);
-    }
   }
+
 }
