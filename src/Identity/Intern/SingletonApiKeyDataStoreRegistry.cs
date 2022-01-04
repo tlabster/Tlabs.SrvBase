@@ -100,14 +100,13 @@ namespace Tlabs.Identity.Intern {
     }
 
     ///<summary>
-    ///Generates a string of the specified length by using the cryptographically
-    ///secure <see cref="RNGCryptoServiceProvider"/> random number generator.
-    ///The RNG will create an array of (non-zero) bytes. This will be returned as a B64 string
+    ///Generates a string of the specified length by using the <see cref="RandomNumberGenerator"/>.
+    ///The RNG will create a cryptographically strong random sequence of (non-zero) bytes. This will be returned as a B64 string
     ///</summary>
     private static string generateRandomCryptographicKey(int keyLength) {
-      var rngCryptoServiceProvider = new RNGCryptoServiceProvider();
-      byte[] randomBytes = new byte[keyLength];
-      rngCryptoServiceProvider.GetNonZeroBytes(randomBytes);
+      var rngGen= RandomNumberGenerator.Create();
+      byte[] randomBytes= new byte[keyLength];
+      rngGen.GetNonZeroBytes(randomBytes);
       return Convert.ToBase64String(randomBytes);
     }
 

@@ -1,0 +1,22 @@
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+using Tlabs.Config;
+using Tlabs.JobCntrl;
+
+/* Add this to your server application in order to have the JobCntrl runtime start on server start up.
+ * (We *DO NOT* include this to Tlabs.SrvBase because this would require a dependency to Tlabs.JobCntrl...)
+ */
+namespace My.Namespace {
+
+  ///<summary>Runtime starter.</summary>
+  public class JobCntrlRuntimeStarter : IConfigurator<MiddlewareContext> {
+  ///<inherit/>
+    public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
+      var jobCntrl= Tlabs.App.ServiceProv.GetRequiredService<IJobControl>(); //unscoped singleton JobCntrl
+      jobCntrl.Init();
+      jobCntrl.Start();
+    }
+  }
+}
+

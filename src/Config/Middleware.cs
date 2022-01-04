@@ -11,8 +11,20 @@ using Microsoft.Extensions.FileProviders;
 
 namespace Tlabs.Config {
 
-    ///<summary>Configures static file middleware.</summary>
-    public class StaticContentConfigurator : IConfigurator<MiddlewareContext> {
+  ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
+  public class MiddlewareContext {
+    ///<summary>Web hosting environment</summary>
+    public IWebHostEnvironment HostingEnv { get; set; }
+    ///<summary>Application builder to be configured.</summary>
+    public IApplicationBuilder AppBuilder { get; set; }
+  }
+
+  ///<summary>Configurator to add additional assembly path(s).</summary>
+  public class WebHostAsmPathConfigurator : AssemblyPathConfigurator<IWebHostBuilder> { }
+
+
+  ///<summary>Configures static file middleware.</summary>
+  public class StaticContentConfigurator : IConfigurator<MiddlewareContext> {
     private ILogger log;
     IDictionary<string, string> config;
     ///<summary>Default ctor.</summary>
