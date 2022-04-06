@@ -1,10 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Tlabs.Data.Model;
 
 namespace Tlabs.Identity {
 
   ///<summary>Roles administration service interface.</summary>
   public interface IRolesAdministration {
+
+    ///<summary>List of <see cref="Role"/>(s) matching optional <paramref name="filter"/>.</summary>
+    IQueryable<Role> FilteredRoles(QueryFilter filter);
 
     ///<summary>List of <see cref="User"/>(s) matching optional <paramref name="filterName"/>.</summary>
     IList<Role> FilteredList(string filterName= null);

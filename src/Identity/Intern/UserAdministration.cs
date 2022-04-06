@@ -48,7 +48,7 @@ namespace Tlabs.Identity.Intern {
 
     ///<summary>Ctor from .</summary>
     public UserAdministration(IHttpContextAccessor httpCtxAcc,
-                              UserManager<Data.Entity.User> userManager, 
+                              UserManager<Data.Entity.User> userManager,
                               SignInManager<Data.Entity.User> signInManager,
                               ICachedRepo<Tlabs.Data.Entity.Locale> locRepo,
                               IOptions<IdentityOptions> identOpt) {
@@ -149,6 +149,7 @@ namespace Tlabs.Identity.Intern {
       var toInsert= usrRoles.Where(r => !currentNames.Contains(r));
       var newRoles= store.Query<Data.Entity.Role>()
                          .Where(r => toInsert.Contains(r.Name));
+      store.Attach<Data.Entity.User>(usrEnt);
       foreach (var role in newRoles) {
         store.Insert<Data.Entity.User.RoleRef>(new Data.Entity.User.RoleRef {
           User= usrEnt,

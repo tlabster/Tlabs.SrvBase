@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +25,17 @@ namespace Tlabs.Identity.Intern {
     static ICache<string, Role> cache => LazyCache.instance;
     readonly ILookupNormalizer norm= new UserAdministration.DefaultNormalizer();
 
+    ///<inheritdoc/>
+    public IQueryable<Role> FilteredRoles(QueryFilter filter) {
+      var ret= default(List<Role>);
+      Tlabs.App.WithServiceScope(prov => {
+        var store = prov.GetService<IDataStore>();
+        var query = store.UntrackedQuery<Tlabs.Data.Entity.Role>();
+        query = filter.Apply(query, filterMap, sorterMap);
+        ret= query.Select(r => new Role(r)).ToList(); // Load in memory to prevent out of context error
+      });
+      return ret.AsQueryable();
+    }
     ///<inheritdoc/>
     public IList<Role> FilteredList(string nameFilter= null)
       => cache.Entries.Where(p => string.IsNullOrEmpty(nameFilter) || p.Key.StartsWith(norm.NormalizeName(nameFilter)))
@@ -67,7 +77,7 @@ namespace Tlabs.Identity.Intern {
       });
 
     static Role internalCreateOrUpdate(Role role) => ReturnFrom((norm, roleMngr, store) => {
-      var existing= roleMngr.Roles.SingleOrDefault(r => r.Name == norm.NormalizeName(role.Key));
+      var existing= roleMngr.Roles.SingleOrDefault(r => r.NormalizedRoleName == norm.NormalizeName(role.Key));
       if (null != existing) {
         roleMngr.UpdateAsync(role.CopyTo(existing)).GetAwaiter().GetResult();
       }
@@ -83,6 +93,15 @@ namespace Tlabs.Identity.Intern {
       roleMngr.DeleteAsync(role).GetAwaiter().GetResult();
       return nrn;
     });
+
+    static readonly IDictionary<string, QueryFilter.FilterExpression<Tlabs.Data.Entity.Role>> filterMap =
+      new Dictionary<string, QueryFilter.FilterExpression<Tlabs.Data.Entity.Role>>(StringComparer.OrdinalIgnoreCase) {
+        [nameof(Role.Key)] = (q, cv) => q.Where(r => r.Name.StartsWith(cv.ToString())),
+        [nameof(Role.Description)] = (q, cv) => q.Where(r => r.Description.Contains(cv.ToString())),
+      };
+
+    static readonly IDictionary<string, QueryFilter.SorterExpression<Tlabs.Data.Entity.Role>> sorterMap =
+    new Dictionary<string, QueryFilter.SorterExpression<Tlabs.Data.Entity.Role>>(StringComparer.OrdinalIgnoreCase) { };
 
   }
 
