@@ -33,7 +33,7 @@ namespace Tlabs.Identity.Intern {
     ///<summary>Ctor from <paramref name="options"/></summary>
     public SingletonApiKeyDataStoreRegistry(IOptions<Options> options) {
       this.options= options.Value;
-      if (0 == cache.Entries.Count()) cache[this.options.initialKey]= new KeyToken {
+      if (!cache.Entries.Any()) cache[this.options.initialKey]= new KeyToken {
         TokenName= this.options.initialTokenName,
         Description= "Temporary initial Key - Please delete",
         ValidFrom= App.TimeInfo.Now,

@@ -74,7 +74,7 @@ namespace Tlabs.Server.Auth {
       var authorize= context.HttpContext.Request.Headers[HEADER_AUTH_KEY];
       if (1 == authorize.Count) {
         var authParts= authorize[0].Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
+        if (2 == authParts.Length && string.Equals(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
           key= authParts[1];
       }
 

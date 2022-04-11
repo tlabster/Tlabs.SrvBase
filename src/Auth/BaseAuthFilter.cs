@@ -17,7 +17,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Key used by the token auth mechanism</summary>
     protected const string HEADER_AUTH_KEY= "Authorization";
-    IRolesAdministration rolesAdm;
+    readonly IRolesAdministration rolesAdm;
     ///<summary>Ctor from <paramref name="rolesAdm"/>.</summary>
     public BaseAuthFilter(IRolesAdministration rolesAdm) => this.rolesAdm= rolesAdm;
 
@@ -45,15 +45,15 @@ namespace Tlabs.Server.Auth {
         return false;
       }
 
-      var route= context.ActionDescriptor.AttributeRouteInfo.Template.ToLower();
-      var method= context.HttpContext.Request.Method.ToUpper();
+      var route= context.ActionDescriptor.AttributeRouteInfo.Template.ToLower(App.DfltFormat);
+      var method= context.HttpContext.Request.Method.ToUpper(App.DfltFormat);
       var roles= currentRoles.Select(r => rolesAdm.GetByName(r));
 
       if (roles.Any(role => role.AllowsAction(method, route))) return true;
       return false;
     }
 
-    private Role loadRole(string name) {
+    static Role loadRole(string name) {
       Role role= null;
       App.WithServiceScope(prov => {
         var roleRepo= (IRepo<Role>)prov.GetService(typeof(IRepo<Role>));

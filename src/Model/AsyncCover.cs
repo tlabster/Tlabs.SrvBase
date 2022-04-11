@@ -8,8 +8,8 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Cover for a single model object being provided from async delegate.</summary>
   public class AsyncModelCover<T> : ModelCover<T>, IActionResult {
-    Task<T> resTask;
-    Func<Exception, string> provideErrMessage;
+    readonly Task<T> resTask;
+    readonly Func<Exception, string> provideErrMessage;
 
     ///<summary>Ctor from async <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
@@ -40,8 +40,8 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Cover for the result of a data query returning an <see cref="IEnumerable{T}"/>.</summary>
   public class AsyncQueryCover<T> : QueryCover<T>, IActionResult {
-    Task<IEnumerable<T>> resTask;
-    Func<Exception, string> provideErrMessage;
+    readonly Task<IEnumerable<T>> resTask;
+    readonly Func<Exception, string> provideErrMessage;
     ///<summary>Ctor from async <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     public AsyncQueryCover(Func<QueryCover<T>, Task<IEnumerable<T>>> queryResult, Func<Exception, string> provideErrMessage = null) {
       this.resTask= queryResult(this);

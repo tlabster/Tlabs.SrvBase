@@ -106,7 +106,7 @@ namespace Tlabs.Server.Model {
     public string direction { get; set; }
 
     ///<summary>Check for ASC sort direction.</summary>
-    public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || 0 == string.Compare(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
+    public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || string.Equals(ASC, this.direction, StringComparison.OrdinalIgnoreCase);
   }
 
 }

@@ -49,11 +49,9 @@ namespace Tlabs.Server.Model {
 
     ///<summary>Handle exception.</summary>
     protected virtual void handleException(Exception e, Func<Exception, string> provideErrMessage) {
-      this.error= provideErrMessage?.Invoke(e);
-      if (null == this.error) {
-        this.error= $"Failed to return {typeof(T).Name}: ({e.Message}).";
-        log.LogError(e, this.error);
-      }
+      this.error=    provideErrMessage?.Invoke(e)
+                  ?? $"Failed to return {typeof(T).Name}: ({e.Message}).";
+      log.LogError(e, "Cover: {err}", this.error);
       this.errDetails= ErrorDetails.Optional(e);
     }
   }
@@ -125,7 +123,7 @@ namespace Tlabs.Server.Model {
       }
       catch (Exception e) {
         this.error= $"Failed to return {typeof(M).Name}(s): ({e.Message}).";
-        log.LogError(0, e, this.error);
+        log.LogError(e, "Cover: {err}", this.error);
       }
     }
 
@@ -152,7 +150,7 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Cover for the concatenated result(s) of <see cref="IQueryable{T}"/>(s).</summary>
   public class ConcatQueryCover<T> : AbstractCover<T> {
-    private IEnumerable<T> dataEnum;
+    readonly IEnumerable<T> dataEnum;
 
     ///<summary>Ctor from multiple <paramref name="queries"/>(s).</summary>
     public ConcatQueryCover(params IQueryable<T>[] queries) {

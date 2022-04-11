@@ -13,9 +13,9 @@ namespace Tlabs.Identity {
 
   ///<summary>Accessor retuning the current identity registered with the HttpContext.</summary>
   public class HttpContextIdentityAccessor : SysIdentityAccessor {
-    private ILogger<HttpContextIdentityAccessor> log= App.Logger<HttpContextIdentityAccessor>();
-    private IHttpContextAccessor httpCtx;
-    private IdentityOptions identOpt;
+    static readonly ILogger<HttpContextIdentityAccessor> log= App.Logger<HttpContextIdentityAccessor>();
+    readonly IHttpContextAccessor httpCtx;
+    readonly IdentityOptions identOpt;
     ///<summary>Ctor from <paramref name="httpCtx"/>.</summary>
     public HttpContextIdentityAccessor(IHttpContextAccessor httpCtx, IOptions<IdentityOptions> optAcc) {
       this.httpCtx= httpCtx;
@@ -38,8 +38,8 @@ namespace Tlabs.Identity {
     ///<inherit/>
     public override int Id {
       get {
-        int id= 0;
-        Int32.TryParse(Principal.FindFirstValue(identOpt.ClaimsIdentity.UserIdClaimType) ?? "0", out id);
+        #pragma warning disable CA1806  // use default id value
+        Int32.TryParse(Principal.FindFirstValue(identOpt.ClaimsIdentity.UserIdClaimType) ?? "0", out var id);
         return id;
       }
     }

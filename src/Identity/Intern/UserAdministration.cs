@@ -38,7 +38,7 @@ namespace Tlabs.Identity.Intern {
       [nameof(Data.Entity.User.Lastname)]= (q, cv) => q.Where(u => u.Lastname.StartsWith(cv.ToString())),
       [nameof(Data.Entity.User.Status)]= (q, cv) => q.Where(u => u.Status.StartsWith(cv.ToString()))
     };
-    static IDictionary<string, QueryFilter.SorterExpression<Data.Entity.User>> userSorterMap= new Dictionary<string, QueryFilter.SorterExpression<Data.Entity.User>>(StringComparer.OrdinalIgnoreCase) {
+    static readonly IDictionary<string, QueryFilter.SorterExpression<Data.Entity.User>> userSorterMap= new Dictionary<string, QueryFilter.SorterExpression<Data.Entity.User>>(StringComparer.OrdinalIgnoreCase) {
       [nameof(Data.Entity.User.UserName)]= (q, isAsc) => isAsc ? q.OrderBy(u => u.UserName) : q.OrderByDescending(u => u.UserName),
       [nameof(Data.Entity.User.Email)]= (q, isAsc) => isAsc ? q.OrderBy(u => u.Email) : q.OrderByDescending(u => u.Email),
       [nameof(Data.Entity.User.Firstname)]= (q, isAsc) => isAsc ? q.OrderBy(u => u.Firstname) : q.OrderByDescending(u => u.Firstname),
@@ -68,7 +68,7 @@ namespace Tlabs.Identity.Intern {
 
     ///<inheritdoc/>
     public IResultList<Data.Model.User> FilteredList(QueryFilter filter= null) {
-      filter= filter ?? new QueryFilter();
+      filter??= new QueryFilter();
 
       var query= loadUser(filter.Apply(userManager.Users, userFilterMap, userSorterMap));
       return new QueryResult<Data.Entity.User, Data.Model.User>(query, filter, u => new Data.Model.User(u));
@@ -224,7 +224,7 @@ namespace Tlabs.Identity.Intern {
 
       return LoginResult.SUCCESS;
     }
-    private ClaimsPrincipal createPreliminaryIdentity(Data.Entity.User user, string msgId) {
+    static ClaimsPrincipal createPreliminaryIdentity(Data.Entity.User user, string msgId) {
       var ident= new ClaimsIdentity(IdentityConstants.TwoFactorUserIdScheme);
       ident.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
       ident.AddClaim(new Claim(ClaimTypes.Sid, msgId));
@@ -273,7 +273,7 @@ namespace Tlabs.Identity.Intern {
         return false;
       }
 
-      var msgId= firstFactorIdent?.FindFirstValue(ClaimTypes.Sid);
+      // var msgId= firstFactorIdent?.FindFirstValue(ClaimTypes.Sid);
       bool isValid;
       try {
         isValid= false; //*** TODO: Check validity of sec. factor token with msgId
@@ -302,7 +302,7 @@ namespace Tlabs.Identity.Intern {
       log.LogInformation("Logged off user {usr}", usrName);
     }
 
-    private void throwOnIdentiyError(IdentityResult res, string msg, params object[] args) {
+    static void throwOnIdentiyError(IdentityResult res, string msg, params object[] args) {
       if (res.Succeeded) return;
       var ex= Tlabs.EX.New<ArgumentException>(msg, args);
       ex.Data[(ExceptionDataKey)"IdentityErrors"]= res.Errors;
@@ -310,12 +310,12 @@ namespace Tlabs.Identity.Intern {
     }
 
     ///<inheritdoc/>
-    public bool NomalizedNameEquals(string k1, string k2) => string.Equals(norm.NormalizeName(k1), norm.NormalizeName(k2));
+    public bool NomalizedNameEquals(string k1, string k2) => string.Equals(norm.NormalizeName(k1), norm.NormalizeName(k2), StringComparison.Ordinal);
 
     ///<inheritdoc/>
     public string IdentityName(string identity) {
       var schema= IdentityConstants.ApplicationScheme + '/';
-      if (identity.StartsWith(schema)) return identity.Substring(schema.Length);
+      if (identity.StartsWith(schema, StringComparison.Ordinal)) return identity.Substring(schema.Length);
       return identity;
     }
 

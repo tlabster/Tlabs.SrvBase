@@ -16,7 +16,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures MVC to <see cref="IServiceCollection"/>>.</summary>
   public class MvcSvcConfigurator : IConfigurator<IServiceCollection> {
-    IDictionary<string, string> config;
+    readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
     public MvcSvcConfigurator() : this(null) { }
@@ -32,7 +32,7 @@ namespace Tlabs.Config {
 
       // Add ASP.NET MVC framework services.
       services.AddControllers(opt => {
-        var filterKeys= config.Keys.Where(k => k.StartsWith("filter") || k.IndexOf("_filter") >=0).OrderBy(k => k);
+        var filterKeys= config.Keys.Where(k => k.StartsWith("filter", StringComparison.Ordinal) || k.Contains("_filter", StringComparison.Ordinal)).OrderBy(k => k);
         foreach(var filter in filterKeys) {
           var typeName= config[filter];
           if (!string.IsNullOrEmpty(typeName)) {
@@ -49,8 +49,7 @@ namespace Tlabs.Config {
     private void configureJsonOptions(JsonOptions opt) {
       JsonFormat.ApplyDefaultOptions(opt.JsonSerializerOptions);
 
-      string frmt;
-      if (config.TryGetValue("formatting", out frmt))
+      if (config.TryGetValue("formatting", out var frmt))
         opt.JsonSerializerOptions.WriteIndented= frmt.Equals("Indented", StringComparison.OrdinalIgnoreCase);
     }
   }

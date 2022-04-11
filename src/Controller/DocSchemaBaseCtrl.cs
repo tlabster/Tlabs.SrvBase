@@ -37,20 +37,19 @@ namespace Tlabs.Server.Controller {
         return;
       }
       resp.ContentType= "text/plain; charset=utf-8";
-      using (var respWr = new StreamWriter(resp.Body, Encoding.UTF8)) {
-        try {
-          var defStreams= CreateSchemaDefStreams(xml_file, html_file, css_file, xls_file);
-          schemaRepo.CreateFromStreams(defStreams, docProcRepo);
-        }
-        catch (Exception e) {
-          log.LogError(0, e, "Schema upload failed.");
-          resp.StatusCode= 400;
-          var vse= e as Dynamic.ExpressionSyntaxException;
-          if (null != vse && null != vse.SyntaxErrors) foreach(var error in vse.SyntaxErrors) {
+      using var respWr= new StreamWriter(resp.Body, Encoding.UTF8);
+      try {
+        var defStreams= CreateSchemaDefStreams(xml_file, html_file, css_file, xls_file);
+        schemaRepo.CreateFromStreams(defStreams, docProcRepo);
+      }
+      catch (Exception e) {
+        log.LogError(0, e, "Schema upload failed.");
+        resp.StatusCode= 400;
+        var vse= e as Dynamic.ExpressionSyntaxException;
+        if (null != vse && null != vse.SyntaxErrors) foreach (var error in vse.SyntaxErrors) {
             respWr.WriteLine(error.Message);
           }
-          respWr.WriteLine(vse?.Message ?? e.ToString());
-        }
+        respWr.WriteLine(vse?.Message ?? e.ToString());
       }
     }
 

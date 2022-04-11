@@ -78,7 +78,7 @@ namespace Tlabs.Identity.Intern {
     public Task<string> GetUserIdAsync(User user, CancellationToken cancellationToken) {
       cancellationToken.ThrowIfCancellationRequested();
       ThrowIfDisposed();
-      return Task.FromResult(user.Id.ToString());
+      return Task.FromResult(user.Id.ToString(App.DfltFormat));
     }
 
     /// <inherit/>
@@ -222,7 +222,10 @@ namespace Tlabs.Identity.Intern {
     }
 
     /// <inherit/>
-    public void Dispose() => this.repo= null;
+    public void Dispose() {
+      this.repo= null;
+      GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Throws an exception if the object was already disposed
