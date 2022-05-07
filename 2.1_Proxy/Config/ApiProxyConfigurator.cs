@@ -25,7 +25,7 @@ namespace Tlabs.Config {
       this.config= config ?? new Dictionary<string, string>();
     }
 
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(MiddlewareContext ctx, IConfiguration cfg) {
       var proxEndpoints= config.Select(pair => new ApiProxyEndpoint(pair.Value)).ToList();
       ctx.AppBuilder.UseMvcProxy(proxEndpoints);
@@ -52,11 +52,11 @@ namespace Tlabs.Config {
         };
       }
 
-      ///<inherit/>
+      ///<inheritdoc/>
       public string EndpointTemplate { get; }
-      ///<inherit/>
+      ///<inheritdoc/>
       public Func<HttpContext, IDictionary<string, object>, string> ProxyUriBuilder { get; }
-      ///<inherit/>
+      ///<inheritdoc/>
       public Func<HttpContext, Exception, Task> OnFailure { get; }
 
     }

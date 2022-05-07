@@ -17,11 +17,11 @@ namespace Tlabs.Middleware.Proxy {
 
   ///<summary>Proxy endpoint implementation.</summary>
   public struct ProxyEndpoint : IProxyEndpoint {
-    ///<inherit/>
+    ///<inheritdoc/>
     public string EndpointTemplate { get; set; }
-    ///<inherit/>
+    ///<inheritdoc/>
     public Func<HttpContext, IDictionary<string, object>, string> ProxyUriBuilder { get; set; }
-    ///<inherit/>
+    ///<inheritdoc/>
     public Func<HttpContext, Exception, Task> OnFailure { get; set; }
   }
 

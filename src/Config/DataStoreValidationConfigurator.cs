@@ -7,7 +7,7 @@ namespace Tlabs.Data {
 
   ///<summary>Validate data-store configuration.</summary>
   public class DataStoreValidationConfigurator : IConfigurator<MiddlewareContext> {
-  ///<inherit/>
+  ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       Tlabs.App.WithServiceScope(svcProv => {
         var dStore= svcProv.GetRequiredService<IDataStore>();

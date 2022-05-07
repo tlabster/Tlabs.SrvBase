@@ -21,7 +21,7 @@ namespace Tlabs.Identity {
       this.httpCtx= httpCtx;
       this.identOpt= optAcc.Value ?? new IdentityOptions();
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override ClaimsPrincipal Principal {
       get {
         var userIdentity= httpCtx.HttpContext?.User;
@@ -31,11 +31,11 @@ namespace Tlabs.Identity {
         return sysPrincipal;
       }
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string Name => Principal.Identity.Name;
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string AuthenticationType => Principal.Identity.AuthenticationType;
-    ///<inherit/>
+    ///<inheritdoc/>
     public override int Id {
       get {
         #pragma warning disable CA1806  // use default id value
@@ -43,7 +43,7 @@ namespace Tlabs.Identity {
         return id;
       }
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string[] Roles {
       get {
         return new string[] { Principal.FindFirstValue(identOpt.ClaimsIdentity.RoleClaimType) };
