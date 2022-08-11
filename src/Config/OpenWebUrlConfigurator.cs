@@ -13,8 +13,7 @@ namespace Tlabs.Config {
   ///<summary>Open web url on startup configurator</summary>
   public class OpenWebUrlConfigurator : IConfigurator<MiddlewareContext> {
     static readonly ILogger log = Tlabs.App.Logger<OpenWebUrlConfigurator>();
-
-    IDictionary<string, string> config;
+    readonly IDictionary<string, string> config;
     string url;
 
     ///<summary>Default ctor.</summary>
@@ -47,7 +46,7 @@ namespace Tlabs.Config {
 
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         Process.Start(new ProcessStartInfo { FileName=url, UseShellExecute= true});   //Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"));
-      else log.LogWarning($"Opening of {url} not supported on {RuntimeInformation.OSDescription}");
+      else log.LogWarning("Opening of {url} not supported on {desc}", url, RuntimeInformation.OSDescription);
     }
   }
 }

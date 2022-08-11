@@ -50,7 +50,7 @@ namespace Tlabs.Config {
 
     ///<summary>CORS policy name.</summary>
     const string TlabsCORSappPolicy= nameof(TlabsCORSappPolicy);
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var polOpt= new PolicyOptions();
       var optCfg= cfg.GetSection("options");
@@ -61,7 +61,7 @@ namespace Tlabs.Config {
       log.LogInformation($"CORS policy '{TlabsCORSappPolicy}' configured from options.");
     }
 
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       PolicyOptions polOpt= null;
       var optCfg= cfg.GetSection("options");

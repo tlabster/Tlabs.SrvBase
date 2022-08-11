@@ -15,7 +15,7 @@ using Tlabs.Data.Model;
 namespace Tlabs.Server.Audit {
   ///<summary>Implementation of an audit logger</summary>
   public class AuditTrail : IAuditTrail {
-    private IRepo<AuditRecord> repo;
+    readonly IRepo<AuditRecord> repo;
 
     ///<summary>Ctor from <paramref name="repo"/></summary>
     public AuditTrail(IRepo<AuditRecord> repo) {
@@ -27,14 +27,12 @@ namespace Tlabs.Server.Audit {
       var query= repo.AllUntracked;
 
       if (null != filter.Properties) foreach (var kv in filter.Properties) {
-          QueryFilter.FilterExpression<AuditRecord> fx;
-          if (filterMap.TryGetValue(kv.Key, out fx))
+          if (filterMap.TryGetValue(kv.Key, out var fx))
             query= fx(query, kv.Value);
         }
 
       if (null != filter.SortAscBy && 0 != filter.SortAscBy.Count) foreach (var kv in filter.SortAscBy) {
-          QueryFilter.SorterExpression<AuditRecord> sx;
-          if (sorterMap.TryGetValue(kv.Key, out sx))
+          if (sorterMap.TryGetValue(kv.Key, out var sx))
             query= sx(query, kv.Value);
         }
       else query= query.OrderBy(d => d.Modified);
@@ -72,20 +70,17 @@ namespace Tlabs.Server.Audit {
 
       if(HttpMethods.IsGet(httpContext.Request.Method)) return null;
 
-      var ident= httpContext.User.Identity;
-
       var audit= new AuditRecord {
         ActionName= httpContext.GetRouteData().Values["Controller"].ToString() + "/" + httpContext.GetRouteData().Values["Action"].ToString(),
         IPAddress= connection.RemoteIpAddress.ToString(),
         URL= Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(request),
         Method= httpContext.Request.Method,
-        StatusCode= httpContext.Response.StatusCode.ToString()
+        StatusCode= httpContext.Response.StatusCode.ToString(App.DfltFormat)
       };
 
       if(context is ResultExecutingContext) {
         var c= context as ResultExecutingContext;
-        var res= c.Result as Model.BaseCover;
-        if(null != res) {
+        if (c.Result is Model.BaseCover res) {
           audit.Error= res.error;
 
           audit.Error= null != res.errDetails.msgData && res.errDetails.msgData.ContainsKey("joinedErrors") ?
@@ -106,13 +101,12 @@ namespace Tlabs.Server.Audit {
       return null;
     }
 
-    private string readBody(Stream st) {
-      using(var reader= new StreamReader(st)) {
-        return reader.ReadToEnd();
-      }
+    static string readBody(Stream st) {
+      using var reader= new StreamReader(st);
+      return reader.ReadToEnd();
     }
 
-    static IDictionary<string, QueryFilter.FilterExpression<AuditRecord>> filterMap= new Dictionary<string, QueryFilter.FilterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
+    static readonly IDictionary<string, QueryFilter.FilterExpression<AuditRecord>> filterMap= new Dictionary<string, QueryFilter.FilterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
       [nameof(Model.AuditRecord.URL)]= (q, cv) => q.Where(m => m.URL.Contains(cv.ToString())),
       [nameof(Model.AuditRecord.Editor)]= (q, cv) => q.Where(m => m.Editor.Contains(cv.ToString())),
       [nameof(Model.AuditRecord.Method)]= (q, cv) => q.Where(m => m.Method.StartsWith(cv.ToString())),
@@ -122,7 +116,7 @@ namespace Tlabs.Server.Audit {
       [nameof(Model.AuditRecord.Success)]= (q, cv) => q.Where(m => m.Success == cv.ToBoolean(CultureInfo.InvariantCulture))
     };
 
-    static IDictionary<string, QueryFilter.SorterExpression<AuditRecord>> sorterMap= new Dictionary<string, QueryFilter.SorterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
+    static readonly IDictionary<string, QueryFilter.SorterExpression<AuditRecord>> sorterMap= new Dictionary<string, QueryFilter.SorterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
       [nameof(Model.AuditRecord.URL)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.URL) : q.OrderByDescending(m => m.URL),
       [nameof(Model.AuditRecord.Editor)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Editor) : q.OrderByDescending(m => m.Editor),
       [nameof(Model.AuditRecord.Method)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Method) : q.OrderByDescending(m => m.Method),

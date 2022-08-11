@@ -16,7 +16,7 @@ namespace Tlabs.Server.Auth {
   ///<summary>Filter that </summary>
   public class RoleDefaultParamsFilter : IActionFilter {
     private static readonly ILogger log= Tlabs.App.Logger<RoleDefaultParamsFilter>();
-    IRolesAdministration rolesAdm;
+    readonly IRolesAdministration rolesAdm;
 
     ///<summary>Ctor from <paramref name="rolesAdm"/>. </summary>
     public RoleDefaultParamsFilter(IRolesAdministration rolesAdm) => this.rolesAdm= rolesAdm;
@@ -34,7 +34,7 @@ namespace Tlabs.Server.Auth {
 
       // Get parameter name from role
       if (ctx.ActionDescriptor.Parameters.Count < forcedParams.Position) {
-        log.LogError($"No parameter with index {forcedParams.Position} found in controller action {ctx.ActionDescriptor.DisplayName}");
+        log.LogError("No parameter with index {pos} found in controller action {name}", forcedParams.Position, ctx.ActionDescriptor.DisplayName);
         return;
       }
 
@@ -72,7 +72,7 @@ namespace Tlabs.Server.Auth {
       var role= roles.FirstOrDefault(r => r.AllowedRoutes != null);
 
       if (role == null) return null;
-      return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo.Template.ToLower());
+      return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo.Template.ToLower(App.DfltFormat));
     }
 
     /// <summary>Configurator</summary>

@@ -18,7 +18,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures IdentiytFramework.</summary>
   public class IdentityConfigurator : IConfigurator<IServiceCollection> {
-    IDictionary<string, string> config;
+    readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
     public IdentityConfigurator() : this(null) { }
@@ -28,7 +28,7 @@ namespace Tlabs.Config {
       this.config= config ?? new Dictionary<string, string>();
     }
 
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log= App.Logger<IdentityConfigurator>();
 
@@ -38,12 +38,11 @@ namespace Tlabs.Config {
       services.Configure<IdentityOptions>(options => {
         // Password settings
         var pwOptions= new PasswordOptions();
-        string cfgStr;
-        config.TryGetValue(nameof(pwOptions.RequireDigit), out cfgStr);
+        config.TryGetValue(nameof(pwOptions.RequireDigit), out var cfgStr);
         pwOptions.RequireDigit= Boolean.Parse(cfgStr ?? "true");
 
         config.TryGetValue(nameof(pwOptions.RequiredLength), out cfgStr);
-        pwOptions.RequiredLength= int.Parse(cfgStr ?? "8");
+        pwOptions.RequiredLength= int.Parse(cfgStr ?? "8", App.DfltFormat);
 
         config.TryGetValue(nameof(pwOptions.RequireLowercase), out cfgStr);
         pwOptions.RequireLowercase= Boolean.Parse(cfgStr ?? "true");
@@ -66,10 +65,10 @@ namespace Tlabs.Config {
       });
 
       services.ConfigureApplicationCookie(options => {
-        string cfgStr;
-        if (config.TryGetValue("idleLogoffMinutes", out cfgStr) && cfgStr != null) {
-          int minutes;
-          Int32.TryParse(cfgStr, out minutes);
+        if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null) {
+#pragma warning disable CA1806  //use minutes default value
+          Int32.TryParse(cfgStr, out var minutes);
+#pragma warning restore CA1806
           if (minutes > 0) {
             options.SlidingExpiration= true;
             options.ExpireTimeSpan= new TimeSpan(0, minutes, 0);

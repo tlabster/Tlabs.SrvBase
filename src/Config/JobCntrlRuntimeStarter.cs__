@@ -11,7 +11,7 @@ namespace My.Namespace {
 
   ///<summary>Runtime starter.</summary>
   public class JobCntrlRuntimeStarter : IConfigurator<MiddlewareContext> {
-  ///<inherit/>
+  ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       var jobCntrl= Tlabs.App.ServiceProv.GetRequiredService<IJobControl>(); //unscoped singleton JobCntrl
       jobCntrl.Init();

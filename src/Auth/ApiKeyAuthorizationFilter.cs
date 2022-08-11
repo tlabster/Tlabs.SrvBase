@@ -20,8 +20,8 @@ namespace Tlabs.Server.Auth {
   public class ApiKeyAuthorizationFilter : IAsyncAuthorizationFilter {
     static readonly ILogger log= Tlabs.App.Logger<ApiKeyAuthorizationFilter>();
     const string HEADER_AUTH_KEY= "Authorization";
-    Options authOptions;
-    Regex pathPattern;
+    readonly Options authOptions;
+    readonly Regex pathPattern;
     ///<summary>Ctor from <paramref name="options"/>.</summary>
     public ApiKeyAuthorizationFilter(IOptions<Options> options) {
       this.authOptions= options.Value;
@@ -39,7 +39,7 @@ namespace Tlabs.Server.Auth {
 
       if (1 == authorize.Count) {
         var authParts= authorize[0].Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (2 == authParts.Length && 0 == string.Compare(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
+        if (2 == authParts.Length && string.Equals(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
           key= authParts[1];
       }
       if (   pathPattern.IsMatch(route)

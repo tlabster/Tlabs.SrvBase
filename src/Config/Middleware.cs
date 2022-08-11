@@ -25,8 +25,8 @@ namespace Tlabs.Config {
 
   ///<summary>Configures static file middleware.</summary>
   public class StaticContentConfigurator : IConfigurator<MiddlewareContext> {
-    private ILogger log;
-    IDictionary<string, string> config;
+    readonly ILogger log;
+    readonly IDictionary<string, string> config;
     ///<summary>Default ctor.</summary>
     public StaticContentConfigurator() : this(null)  { }
 
@@ -35,14 +35,13 @@ namespace Tlabs.Config {
       this.config= config ?? new Dictionary<string, string>(0);
       this.log= App.Logger<StaticContentConfigurator>();
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
 
       /* Configure default page(s):
        * (This MUST come before UseStaticFiles()...)
        */
-      string dfltPage;
-      if (config.TryGetValue("defaultPage", out dfltPage) && !string.IsNullOrEmpty(dfltPage)) {
+      if (config.TryGetValue("defaultPage", out var dfltPage) && !string.IsNullOrEmpty(dfltPage)) {
         string[] dfltPages= dfltPage.Split(',');
         log.LogInformation("Default page(s) are: '{defaultPages}'", string.Join(",", dfltPages));
         mware.AppBuilder.UseDefaultFiles(new DefaultFilesOptions() {
@@ -53,7 +52,7 @@ namespace Tlabs.Config {
       mware.AppBuilder.UseStaticFiles(); //from HostingEnv.WebRootPath
       log.LogInformation("Serving static content from: '{webroot}'", mware.HostingEnv.WebRootPath);
 
-      foreach( var pair in config.Where(p => p.Key.StartsWith("/"))) {
+      foreach( var pair in config.Where(p => p.Key.StartsWith("/", System.StringComparison.Ordinal))) {
         var contPath= Path.Combine(App.ContentRoot, pair.Value);
         if (!Directory.Exists(contPath)) {
           log.LogDebug("Ignoring non exisiting static content path: {path}", contPath);
@@ -71,7 +70,7 @@ namespace Tlabs.Config {
   ///<summary>Configures debug pages middleware.</summary>
   public class DebugPagesConfigurator : IConfigurator<MiddlewareContext> {
 
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       if (mware.HostingEnv.IsDevelopment()) {
         mware.AppBuilder.UseDeveloperExceptionPage();  //see https://docs.microsoft.com/en-us/aspnet/core/fundamentals/error-handling
@@ -84,7 +83,7 @@ namespace Tlabs.Config {
   ///<summary>Configures ASPNET MVC middleware.</summary>
   public class MvcMiddlewareConfigurator : IConfigurator<MiddlewareContext> {
 
-    ///<inherit/>
+    ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
       var appBuilder= mware.AppBuilder;
       appBuilder.UseRouting();

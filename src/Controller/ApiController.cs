@@ -20,49 +20,49 @@ namespace Tlabs.Server.Controller {
     ///<summary>Resolve API error from exception.</summary>
     protected virtual string resolveError(Exception e, string msg0= null) {
       e.Source= ActionRoute;
-      var inner= e.InnerException;
+      // var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
       var msg= msg0;
 
       switch (e) {
         case DataEntityNotFoundException nfe:
           code= StatusCodes.Status404NotFound;
-          msg= msg ?? nfe.Message;
+          msg??= nfe.Message;
         break;
 
         case ArgumentNullException an:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? an.SetMissingTemplateData("Missing required parameter '{paramName}'", an.ParamName ?? an.Message).ResolvedMsgTemplate();
+          msg??= an.SetMissingTemplateData("Missing required parameter '{paramName}'", an.ParamName ?? an.Message).ResolvedMsgTemplate();
           break;
 
         case ArgumentOutOfRangeException re:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? re.SetMissingTemplateData("Value ({actualValue}) for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
+          msg??= re.SetMissingTemplateData("Value ({actualValue}) for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
         break;
 
         case ArgumentException ae:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? ae.SetMissingTemplateData("Invalid value for parameter '{paramName}'", ae.ParamName ?? ae.Message).ResolvedMsgTemplate();
+          msg??= ae.SetMissingTemplateData("Invalid value for parameter '{paramName}'", ae.ParamName ?? ae.Message).ResolvedMsgTemplate();
         break;
 
         case KeyNotFoundException kn:
           code= StatusCodes.Status404NotFound;
-          msg= msg ?? kn.Message;
+          msg??= kn.Message;
         break;
 
         case InvalidOperationException io:
           code= StatusCodes.Status404NotFound;
-          msg= msg ?? io.Message;
+          msg??= io.Message;
         break;
 
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? ic.SetMissingTemplateData("Invalid parameter type ({type})", ic.Message).ResolvedMsgTemplate();
+          msg??= ic.SetMissingTemplateData("Invalid parameter type ({type})", ic.Message).ResolvedMsgTemplate();
         break;
 
         case FormatException fe:
           code= StatusCodes.Status400BadRequest;
-          msg= msg ?? fe.SetMissingTemplateData("Invalid parameter format ({format})", fe.Message).ResolvedMsgTemplate();
+          msg??= fe.SetMissingTemplateData("Invalid parameter format ({format})", fe.Message).ResolvedMsgTemplate();
         break;
 
         default:
@@ -72,8 +72,9 @@ namespace Tlabs.Server.Controller {
           log.LogError(e, "Error processing request ({msg}).", e.Message);
         break;
       }
-
+#pragma warning disable CA2254  //log generic message
       log.LogDebug(0, e, msg);
+#pragma warning restore CA2254
       if (null != HttpContext)
         HttpContext.Response.StatusCode= code;
       ResolvedStatusCode= code;

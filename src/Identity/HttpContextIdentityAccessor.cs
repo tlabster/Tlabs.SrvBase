@@ -13,15 +13,15 @@ namespace Tlabs.Identity {
 
   ///<summary>Accessor retuning the current identity registered with the HttpContext.</summary>
   public class HttpContextIdentityAccessor : SysIdentityAccessor {
-    private ILogger<HttpContextIdentityAccessor> log= App.Logger<HttpContextIdentityAccessor>();
-    private IHttpContextAccessor httpCtx;
-    private IdentityOptions identOpt;
+    static readonly ILogger<HttpContextIdentityAccessor> log= App.Logger<HttpContextIdentityAccessor>();
+    readonly IHttpContextAccessor httpCtx;
+    readonly IdentityOptions identOpt;
     ///<summary>Ctor from <paramref name="httpCtx"/>.</summary>
     public HttpContextIdentityAccessor(IHttpContextAccessor httpCtx, IOptions<IdentityOptions> optAcc) {
       this.httpCtx= httpCtx;
       this.identOpt= optAcc.Value ?? new IdentityOptions();
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override ClaimsPrincipal Principal {
       get {
         var userIdentity= httpCtx.HttpContext?.User;
@@ -31,19 +31,20 @@ namespace Tlabs.Identity {
         return sysPrincipal;
       }
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string Name => Principal.Identity.Name;
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string AuthenticationType => Principal.Identity.AuthenticationType;
-    ///<inherit/>
+    ///<inheritdoc/>
     public override int Id {
       get {
-        int id= 0;
-        Int32.TryParse(Principal.FindFirstValue(identOpt.ClaimsIdentity.UserIdClaimType) ?? "0", out id);
+#pragma warning disable CA1806  // use default id value
+        Int32.TryParse(Principal.FindFirstValue(identOpt.ClaimsIdentity.UserIdClaimType) ?? "0", out var id);
+#pragma warning restore CA1806
         return id;
       }
     }
-    ///<inherit/>
+    ///<inheritdoc/>
     public override string[] Roles {
       get {
         return new string[] { Principal.FindFirstValue(identOpt.ClaimsIdentity.RoleClaimType) };

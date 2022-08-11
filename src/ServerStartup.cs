@@ -89,7 +89,7 @@ namespace Tlabs.Server {
       Serilog.Log.CloseAndFlush();
     }
 
-    IWebHostEnvironment env;
+    readonly IWebHostEnvironment env;
 
     ///<summary>Ctor taking <paramref name="env"/>.</summary>
     public ApplicationStartup(IWebHostEnvironment env) {

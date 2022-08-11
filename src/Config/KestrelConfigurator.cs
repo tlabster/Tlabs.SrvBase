@@ -44,7 +44,6 @@ namespace Tlabs.Config {
 
     ///<summary>Adds the Kestrel configuration to the <paramref name="target"/>.</summary>
     public void AddTo(IWebHostBuilder target, IConfiguration cfg) {
-      string cfgVal;
       target.ConfigureServices(services => {
         var optConfig= cfg.GetSection("options");
         services.Configure<KestrelServerOptions>(optConfig);
@@ -56,9 +55,8 @@ namespace Tlabs.Config {
 #endif
         opt.AllowSynchronousIO= true;
         opt.AddServerHeader= false;
-        if (config.TryGetValue(CERTFILE_KEY, out cfgVal)) {
-          string certPwd= null;
-          if (config.TryGetValue(CERTPWD_KEY, out certPwd))
+        if (config.TryGetValue(CERTFILE_KEY, out var cfgVal)) {
+          if (config.TryGetValue(CERTPWD_KEY, out var certPwd))
             opt.ListenAnyIP(443, lop => lop.UseHttps(cfgVal, certPwd));
           else
             opt.ListenAnyIP(443, lop => lop.UseHttps(cfgVal));

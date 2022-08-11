@@ -38,7 +38,7 @@ namespace Tlabs.Identity.Intern {
     }
     ///<inheritdoc/>
     public IList<Role> FilteredList(string nameFilter= null)
-      => cache.Entries.Where(p => string.IsNullOrEmpty(nameFilter) || p.Key.StartsWith(norm.NormalizeName(nameFilter)))
+      => cache.Entries.Where(p => string.IsNullOrEmpty(nameFilter) || p.Key.StartsWith(norm.NormalizeName(nameFilter), StringComparison.Ordinal))
                             .Select(p => p.Value)
                             .ToList();
 
