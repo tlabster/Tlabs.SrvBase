@@ -66,8 +66,9 @@ namespace Tlabs.Config {
 
       services.ConfigureApplicationCookie(options => {
         if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null) {
-          #pragma warning disable CA1806  //use minutes default value
+#pragma warning disable CA1806  //use minutes default value
           Int32.TryParse(cfgStr, out var minutes);
+#pragma warning restore CA1806
           if (minutes > 0) {
             options.SlidingExpiration= true;
             options.ExpireTimeSpan= new TimeSpan(0, minutes, 0);

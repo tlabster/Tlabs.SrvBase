@@ -38,8 +38,9 @@ namespace Tlabs.Identity {
     ///<inheritdoc/>
     public override int Id {
       get {
-        #pragma warning disable CA1806  // use default id value
+#pragma warning disable CA1806  // use default id value
         Int32.TryParse(Principal.FindFirstValue(identOpt.ClaimsIdentity.UserIdClaimType) ?? "0", out var id);
+#pragma warning restore CA1806
         return id;
       }
     }

@@ -72,8 +72,9 @@ namespace Tlabs.Server.Controller {
           log.LogError(e, "Error processing request ({msg}).", e.Message);
         break;
       }
-      #pragma warning disable CA2254  //log generic message
+#pragma warning disable CA2254  //log generic message
       log.LogDebug(0, e, msg);
+#pragma warning restore CA2254
       if (null != HttpContext)
         HttpContext.Response.StatusCode= code;
       ResolvedStatusCode= code;
