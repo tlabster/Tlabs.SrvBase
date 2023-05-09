@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Tlabs.Config {
@@ -9,7 +10,7 @@ namespace Tlabs.Config {
   ///By default default <see cref="IHostApplicationLifetime"/> is only listening on Ctrl-C...
   ///(On windows closing a terminal window using the [x] is not recognized)
   ///<para>This also listens on <c>ProcessExit</c> which handles even windows close...</para>
-  ////<remarks>
+  ///</remarks>
   public class ShutdownConfigurator : IConfigurator<MiddlewareContext> {
     static readonly ILogger log= Tlabs.App.Logger<ShutdownConfigurator>();
 
