@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 
-using Tlabs.Sync;
+using Tlabs.Misc;
 using Tlabs.Data.Serialize;
 
 using Xunit;
