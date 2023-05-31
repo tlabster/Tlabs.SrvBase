@@ -20,9 +20,14 @@ namespace Tlabs.Msg {
     /// </summary>
     Task RegisterConnection(WebSocket socket, CancellationToken ctk, string scope= DFLT_SCOPE, Action<byte[], string>? msgReceiver= null);
 
-    /// <summary>Publish <paramref name="message"/> to optional ><paramref name="scope"/></summary>
+    /// <summary>Publish <paramref name="message"/> to optional <paramref name="scope"/></summary>
     /// <remarks>Any messages published to a <paramref name="scope"/> that has no registered connections is ignored.
     /// </remarks>
     Task Publish(T message, string? scope= DFLT_SCOPE);
+
+    /// <summary>Send <paramref name="message"/> to WS connection identified with <paramref name="sockTsk"/> returned from <see cref="RegisterConnection(WebSocket, CancellationToken, string, Action{byte[], string}?)"/></summary>
+    /// <remarks>In contrast to <see cref="Publish(T, string?)"/> this sends *only* to the WS connewction identified with <paramref name="sockTsk"/>.
+    /// </remarks>
+    Task Send(T message, Task sockTsk);
   }
 }

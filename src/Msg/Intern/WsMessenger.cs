@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ namespace Tlabs.Msg.Intern {
   ///(see: <see cref="RegisterConnection(WebSocket, CancellationToken, string, Action{byte[], string}?)"/>)
   ///</remarks>
   public sealed class WsMessenger<T> : WsMessenger, IWsMessenger<T>, IDisposable {
+    const int MAX_WAIT= 1_500;
     readonly ISerializer<T> json;
     readonly SyncCollection<SocketConnection> connections= Singleton<SyncCollection<SocketConnection>>.Instance;
 
@@ -42,24 +44,35 @@ namespace Tlabs.Msg.Intern {
     }
 
     /// <inheritdoc/>
-    public async Task Publish(T payload, string? scope= IWsMessenger<T>.DFLT_SCOPE) {
+    public Task Publish(T message, string? scope= IWsMessenger<T>.DFLT_SCOPE) {
       var scopedConnections= connections.CollectionOf(c => c.Scope == scope);
       if (0 == scopedConnections.Count) {
         log.LogDebug("Can't publish to scope {scope}, no web-socket connection.", scope);
-        return;      //no websocket connection(s) in scope
+        return Task.CompletedTask;      //no websocket connection(s) in scope
       }
+      return sendToConnections(scopedConnections, message);
+    }
+
+    /// <inheritdoc/>
+    public Task Send(T message, Task sockTsk) {
+      var tskConns= connections.CollectionOf(c => c.Task == sockTsk);
+      if (0 == tskConns.Count) return Task.CompletedTask;      //no websocket found
+      return sendToConnections(tskConns, message);
+    }
+
+    private async Task sendToConnections(ICollection<SocketConnection> conns, T payload) {
       var msg= json.WriteObj(payload);
 
-      foreach (var con in scopedConnections) try {
+      foreach (var con in conns) try {
         if (!con.IsReady) { //detect closed socket
           con.Dispose();
           continue;
         }
         try {
           /* No concurrent send operation (including await...) allowed per connection:
-           */
-          con.SendSync.Wait();
-          await con.WriteMessage(msg).Timeout(1_500);   //we do not want to await the msg write forever
+            */
+          if (!await con.SendSync.WaitAsync(MAX_WAIT)) throw new TimeoutException();
+          await con.WriteMessage(msg).Timeout(MAX_WAIT);   //we do not want to await the msg write forever
         }
         finally {
           con.SendSync.Release();
