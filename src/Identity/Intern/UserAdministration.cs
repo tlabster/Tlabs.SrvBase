@@ -325,8 +325,21 @@ namespace Tlabs.Identity.Intern {
       public DateTime LockoutUntil { get; private set; }
       public bool IsLockedOut() => Tlabs.App.TimeInfo.Now < LockoutUntil;
       public FailedLogin Increment() {
+        /* Lockout per failed attempt:
+         *  N      sec.   min.
+            1:       5
+            2:      23
+            3:     111      2
+            4:     535      9
+            5:    2576     43
+            6:   12392    207
+            7:   59610    993
+            8:  286751   4779
+            9: 1379411  22990
+           10: 6635624 110594
+        */
         lock(this) {
-          LockoutUntil= Tlabs.App.TimeInfo.Now.AddSeconds(Math.Exp(Math.PI/4 * ++Count*2)); //exponential growth of lockout time
+          LockoutUntil= Tlabs.App.TimeInfo.Now.AddSeconds(Math.Exp(Math.PI/2 * ++Count)); //exponential growth of lockout time
           return this;
         }
       }

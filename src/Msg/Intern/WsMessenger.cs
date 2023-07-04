@@ -48,6 +48,7 @@ namespace Tlabs.Msg.Intern {
       var scopedConnections= connections.CollectionOf(c => c.Scope == scope);
       if (0 == scopedConnections.Count) {
         log.LogDebug("Can't publish to scope {scope}, no web-socket connection.", scope);
+        onDroppedScope(scope??IWsMessenger<T>.DFLT_SCOPE);    //signal dropped scope
         return Task.CompletedTask;      //no websocket connection(s) in scope
       }
       return sendToConnections(scopedConnections, message);
