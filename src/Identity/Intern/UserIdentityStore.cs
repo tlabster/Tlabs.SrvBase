@@ -184,7 +184,7 @@ namespace Tlabs.Identity.Intern {
     public Task AddToRoleAsync(User user, string roleName, CancellationToken cancellationToken) {
       cancellationToken.ThrowIfCancellationRequested();
       ThrowIfDisposed();
-      var role= repo.Store.Query<Role>().First(r => r.Name == roleName);
+      var role= repo.Store.Query<Role>().First(r => r.NormalizedRoleName == roleName);
       repo.Store.Insert<User.RoleRef>(new User.RoleRef { User= user, Role= role });
       return Task.CompletedTask;
     }
