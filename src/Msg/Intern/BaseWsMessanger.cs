@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 
+using Tlabs.Misc;
 using Tlabs.Config;
 
 namespace Tlabs.Msg.Intern {
@@ -33,7 +34,7 @@ namespace Tlabs.Msg.Intern {
       readonly WebSocket ws;
       readonly CancellationToken ctk;
       readonly Action<SocketConnection>? onDispose;
-      bool isDisposed;
+      uint isDisposed;
 
       /// <summary>Ctor.</summary>
       public SocketConnection(
@@ -111,8 +112,7 @@ namespace Tlabs.Msg.Intern {
 
       ///<inheritdoc/>
       public void Dispose() {
-        if (isDisposed) return;     //already disposed
-        isDisposed= true;
+        if ((uint)BOOL.TRUE == Interlocked.CompareExchange(ref isDisposed, (uint)BOOL.FALSE, (uint)BOOL.TRUE)) return;     //already disposed
         try {
           onDispose?.Invoke(this);
           ws.Abort();

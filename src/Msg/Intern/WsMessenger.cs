@@ -95,10 +95,10 @@ namespace Tlabs.Msg.Intern {
        * Here we remove the connection from the connections list and fire the DroppedScope event...
        */
       log.LogDebug("Dropping socket connection for scope: {scope}", disposedCon.Scope);
-
-      if (   connections.Remove(disposedCon)
-          && !connections.Contains(con => con.Scope == disposedCon.Scope)) try {
-        onDroppedScope(disposedCon.Scope); //no more connection for Scope
+      try {
+        if (   connections.Remove(disposedCon)
+            && !connections.Contains(con => con.Scope == disposedCon.Scope))
+          onDroppedScope(disposedCon.Scope); //no more connection for Scope
       }
       catch (Exception e) {
         log.LogInformation("Failed to drop scope: {scope} ({msg})", disposedCon.Scope, e.Message);
@@ -117,7 +117,8 @@ namespace Tlabs.Msg.Intern {
           if (ctk.IsCancellationRequested) return;
           foreach (var badCon in connections.CollectionOf(con => !con.IsReady)) {
             log.LogWarning("Disposing stale web-socket connection: {con}...", badCon.Scope);
-            badCon.Dispose();   //remove stale connection
+            badCon.Dispose();             //dispose stale connection
+            connections.Remove(badCon);
           }
         }
         log.LogDebug("Connection state watcher canceled.");
