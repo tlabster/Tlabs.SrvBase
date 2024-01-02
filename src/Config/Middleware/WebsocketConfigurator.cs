@@ -6,7 +6,7 @@ namespace Tlabs.Config {
 
   ///<summary>Websocket configuration.</summary>
   public class WebsocketConfigurator : IConfigurator<MiddlewareContext> {
-    ILogger log = Tlabs.App.Logger<WebsocketConfigurator>();
+    readonly ILogger log= Tlabs.App.Logger<WebsocketConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {

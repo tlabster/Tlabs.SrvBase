@@ -53,6 +53,7 @@ namespace Tlabs.Server.Auth {
       return false;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051:Remove unused private member", Justification = "Might be needed in future")]
     static Role loadRole(string name) {
       Role role= null;
       App.WithServiceScope(prov => {

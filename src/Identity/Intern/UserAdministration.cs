@@ -224,6 +224,7 @@ namespace Tlabs.Identity.Intern {
 
       return LoginResult.SUCCESS;
     }
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051:Remove unused private member", Justification = "Might be needed in future")]
     static ClaimsPrincipal createPreliminaryIdentity(Data.Entity.User user, string msgId) {
       var ident= new ClaimsIdentity(IdentityConstants.TwoFactorUserIdScheme);
       ident.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
@@ -261,6 +262,7 @@ namespace Tlabs.Identity.Intern {
       return LoginResult.SUCCESS;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unread parameter", Justification = "token needed for future sec. factor check.")]
     private async Task<bool> isValidSecondFactor(Data.Entity.User user, string token) {
       var firstFactorIdent= (await httpCtx.AuthenticateAsync(IdentityConstants.TwoFactorUserIdScheme)).Principal;
 

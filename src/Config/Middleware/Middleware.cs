@@ -32,7 +32,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures ASPNET MVC middleware.</summary>
   public class MvcMiddlewareConfigurator : IConfigurator<MiddlewareContext> {
-    ILogger log= Tlabs.App.Logger<MvcMiddlewareConfigurator>();
+    readonly ILogger log= Tlabs.App.Logger<MvcMiddlewareConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {

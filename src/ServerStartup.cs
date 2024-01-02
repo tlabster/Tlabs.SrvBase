@@ -33,7 +33,8 @@ namespace Tlabs.Server {
         hostBuilder.ConfigureWebHost(webBuilder => {  //ConfigureWebHostDefaults(cfg => {
                                                       //https://github.com/dotnet/aspnetcore/blob/c925f99cddac0df90ed0bc4a07ecda6b054a0b02/src/DefaultBuilder/src/GenericHostBuilderExtensions.cs
                                                       //https://github.com/dotnet/aspnetcore/blob/c925f99cddac0df90ed0bc4a07ecda6b054a0b02/src/DefaultBuilder/src/WebHost.cs
-          webBuilder.UseConfiguration(hostSettings);
+
+          webBuilder.UseConfiguration(hostSettings);  //<- use properties from hostSettings (properties defined in https://github.com/dotnet/aspnetcore/blob/main/src/Hosting/Hosting/src/Internal/WebHostOptions.cs )
           webBuilder.UseStartup<ApplicationStartup>();
           webBuilder.UseSetting(HostDefaults.ApplicationKey, Assembly.GetEntryAssembly().GetName().Name); //fix assembly name being set by UseStartup<>...
           configureDefaultHostfiltering(webBuilder);
