@@ -28,7 +28,7 @@ namespace Tlabs.Server.Auth {
         forbidden(context);
       }
       catch (Exception e) {
-        log.LogCritical("Error in authorization process: ", e);
+        log.LogCritical(e, "Error in authorization process: ");
         errorResult(context, e);
       }
     }

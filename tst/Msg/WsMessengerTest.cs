@@ -136,28 +136,26 @@ namespace Tlabs.Msg.Intern.Test {
       // var tstMsg= new TestMsg();
       byte[] recBuf= null;
       string recScope= null;
-      TaskCompletionSource tcs= new();
       using (var ws= rwSock.Socket) {
-        var conTsk= wsMsg.RegisterConnection(ws, reqTokenSrc.Token, "_", (buf, scope) => { recBuf= buf; recScope= scope; tcs.TrySetResult(); });
-        Assert.Equal(1, rwSock.ReceiveCnt);
+        var conTsk= wsMsg.RegisterConnection(ws, reqTokenSrc.Token, "_", (buf, scope) => { recBuf= buf; recScope= scope; });
+        Assert.Equal(1, rwSock.waitToReceiveCnt);
         Assert.Null(recBuf);
-
         await Task.Yield();
 
         rwSock.Receive("{  }");
-        await tcs.Task;
+        await rwSock.MsgRdySrc.Task;
         Assert.Equal("_", recScope);
-        Assert.Equal(2, rwSock.ReceiveCnt);
+        Assert.Equal(2, rwSock.waitToReceiveCnt);
 
-        tcs= new();
+        TaskCompletionSource tcs= new();
         recBuf= null;
         recScope= null;
         reqTokenSrc.Cancel();             //Simulate a canceled token from HttpContext.RequestAborted
 
         rwSock.Receive("{ x }");
-        await Assert.ThrowsAnyAsync<TimeoutException>(() => tcs.Task.Timeout(1000)); //nothing received with canceled reqTokenSrc
+        await Assert.ThrowsAnyAsync<TimeoutException>(() => tcs.Task.Timeout(200)); //nothing received with canceled reqTokenSrc
         Assert.Null(recScope);
-        Assert.Equal(2, rwSock.ReceiveCnt);   //no more received
+        Assert.Equal(2, rwSock.waitToReceiveCnt);   //no more received
 
         Assert.Equal(0, rwSock.SendCnt);
         Assert.True(rwSock.IsAborted);
@@ -244,9 +242,10 @@ namespace Tlabs.Msg.Intern.Test {
     }
 
     public class ReadWriteMockSocket : MockWebSocket {
-      public int ReceiveCnt;
+      public int waitToReceiveCnt;
       public ArraySegment<byte> Buf;
-      public TaskCompletionSource<WebSocketReceiveResult> TskCmplSrc;
+      public TaskCompletionSource MsgRdySrc= new();                     //msg ready
+      public TaskCompletionSource<WebSocketReceiveResult> ReceivedSrc;  //received
       public ReadWriteMockSocket() {
         var m= this.MockSocket= new Mock<WebSocket>(MockBehavior.Strict);
         m.Setup(sck => sck.State)
@@ -256,11 +255,12 @@ namespace Tlabs.Msg.Intern.Test {
          .Returns(() => Task.Delay(10));
         m.Setup(sck => sck.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
          .Callback<ArraySegment<byte>, CancellationToken>((buf, tok) => {
-           ++ReceiveCnt;
+           ++waitToReceiveCnt;
            Buf= buf;
-           TskCmplSrc= new();
+           ReceivedSrc= new();
+           MsgRdySrc.TrySetResult();
          })
-         .Returns(() => TskCmplSrc.Task);
+         .Returns((Delegate)(() => ReceivedSrc.Task));
         m.Setup(sck => sck.Abort())
          .Callback(() => this.IsAborted= true);
         m.Setup(sck => sck.Dispose())
@@ -270,7 +270,8 @@ namespace Tlabs.Msg.Intern.Test {
         if (null == Buf) throw new InvalidOperationException("No pending receive.");
         var binMsg= System.Text.Encoding.UTF8.GetBytes(msg);
         Array.Copy(binMsg, Buf.Array, binMsg.Length);
-        TskCmplSrc.TrySetResult(new WebSocketReceiveResult(binMsg.Length, WebSocketMessageType.Text, true));
+        MsgRdySrc= new();
+        ReceivedSrc.TrySetResult(new WebSocketReceiveResult(binMsg.Length, WebSocketMessageType.Text, true));
       }
     }
 
