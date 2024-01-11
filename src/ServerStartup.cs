@@ -69,6 +69,7 @@ namespace Tlabs.Server {
     }
 
     static bool isForwardedHeaders;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:not used", Justification= "Possible futute use")]
     static void configureHeaderForwarding(IWebHostBuilder web) {
       web.ConfigureServices((hostingContext, services) => {
         isForwardedHeaders= string.Equals("true", hostingContext.Configuration["ForwardedHeaders_Enabled"], StringComparison.OrdinalIgnoreCase);
@@ -107,12 +108,12 @@ namespace Tlabs.Server {
     ///<summary>Configure the application middleware (HTTP request pipeline).</summary>
     ///<remarks>This method gets called by the runtime after services have been configured with ConfigureServices().</remarks>
     public void Configure(IApplicationBuilder app) {
-      App.ServiceProv= app.ApplicationServices;
+      App.InternalInitSvcProv(app.ApplicationServices);
       App.AppLifetime.ApplicationStopped.Register(onShutdown);
 
       app.UseHostFiltering(); // Should be first in the pipeline
       if (isForwardedHeaders) app.UseForwardedHeaders();
-      
+
       new MiddlewareContext() {
         HostingEnv= this.env,
         AppBuilder= app

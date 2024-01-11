@@ -1,19 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
-using Tlabs.Server.Auth;
+using Tlabs.Misc;
 using Tlabs.Server.Model;
 using Xunit;
 
 
 namespace Tlabs.Identity.Intern.Test {
 
+  [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
   public class DefaultApiKeyRegistryTests : IClassFixture<DefaultApiKeyRegistryTests.Fixture> {
     public class MockPasswordHasher : IPasswordHasher<User> {
       public string HashPassword(User user, string password) => password;
@@ -22,7 +25,7 @@ namespace Tlabs.Identity.Intern.Test {
         return hashedPassword == providedPassword ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
       }
     }
-    public class Fixture {
+    public class Fixture : IDisposable {
       public const string GENERATED_KEY= "GENERATED_KEY";
       public IApiKeyRegistry ApiKeyRegistry { get; }
       public IRepo<ApiKey> ApiKeyRepo { get; }
@@ -35,7 +38,7 @@ namespace Tlabs.Identity.Intern.Test {
       public IOptions<SingletonApiKeyDataStoreRegistry.Options> Options { get; }
       public Fixture() {
         this.PasswordHasher= new MockPasswordHasher();
-        var store = new Mock<IUserStore<User>>();
+        var store= new Mock<IUserStore<User>>();
 
         var role= new Role {
           Name= "Admin"
@@ -186,7 +189,7 @@ namespace Tlabs.Identity.Intern.Test {
         svcProv.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IServiceScopeFactory)))).Returns(this.SvcScopeFactory);
         this.SvcProvider= svcProv.Object;
 
-        App.ServiceProv= this.SvcProvider;
+        App.InternalInitSvcProv(this.SvcProvider);
 
         var options= new Mock<IOptions<SingletonApiKeyDataStoreRegistry.Options>>();
         options.Setup(o => o.Value).Returns(new SingletonApiKeyDataStoreRegistry.Options {
@@ -198,6 +201,10 @@ namespace Tlabs.Identity.Intern.Test {
         this.Options= options.Object;
 
         this.ApiKeyRegistry= new SingletonApiKeyDataStoreRegistry(this.Options);
+      }
+
+      public void Dispose() {
+        App.InternalInitSvcProv(null);
       }
     }
 

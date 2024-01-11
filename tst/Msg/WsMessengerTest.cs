@@ -1,11 +1,14 @@
 ﻿using System;
-using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
 
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 using Tlabs.Misc;
+using Tlabs.Config;
 using Tlabs.Data.Serialize;
 
 using Xunit;
@@ -14,13 +17,50 @@ using Moq;
 
 namespace Tlabs.Msg.Intern.Test {
 
+  [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
+  public class WsMessengerTest : IClassFixture<WsMessengerTest.Fixture> {
+    public class Fixture : AbstractServiceProviderFactory {
+      public Fixture() {
 
-  public class WsMessengerTest : IClassFixture<WsMsgTestContext> {
+        var logFac= LoggerFactory.Create(log => {
+          log.AddConsole()
+           .AddConsoleFormatter<CustomStdoutFormatter, CustomStdoutFormatterOptions>()
+           .SetMinimumLevel(LogLevel.Information)
+           .AddFilter("Microsoft", LogLevel.Warning);
+        });
+        App.LogFactory= logFac;
 
-    WsMsgTestContext tstCtx;
+        this.svcColl.AddLogging();
+
+        this.svcColl.AddSingleton<IHostApplicationLifetime, TestAppLifetime>();
+        new Tlabs.Data.Serialize.Json.JsonFormat.Configurator().AddTo(svcColl, Tlabs.Config.Empty.Configuration);
+
+        Xunit.Assert.NotNull(this.SvcProv);   //make sure the IServiceProvider gets initialized...
+      }
+
+      sealed class TestAppLifetime : IHostApplicationLifetime, IDisposable {
+        static readonly CancellationToken cancelled= new(true);
+        public readonly CancellationTokenSource CancellationTokSrc= new();
+
+        public CancellationToken ApplicationStarted => cancelled;
+
+        public CancellationToken ApplicationStopping => CancellationTokSrc.Token;
+
+        public CancellationToken ApplicationStopped => CancellationTokSrc.Token;
+
+        public void StopApplication() {
+          CancellationTokSrc.Cancel();
+        }
+
+        public void Dispose() => CancellationTokSrc.Dispose();
+
+      }
+    }
+
+    Fixture tstCtx;
     ITestOutputHelper tstout;
 
-    public WsMessengerTest(WsMsgTestContext tstCtx, ITestOutputHelper tstout) {
+    public WsMessengerTest(Fixture tstCtx, ITestOutputHelper tstout) {
       this.tstCtx= tstCtx;
       this.tstout= tstout;
     }
@@ -45,16 +85,18 @@ namespace Tlabs.Msg.Intern.Test {
 
         await wsMsg.Publish(tstMsg);
         await wsMsg.Publish(tstMsg, "ignore");    //tstMsg for this scope must not be written to the socket
+        Assert.Equal(1, scopeDropCnt);            //drop scope "ignore"
         await wsMsg2.Publish(tstMsg2);
         Assert.Equal(2, wrSock.SendCnt);          //tstMsg & tstMsg2 published to same socket
 
-        reqTokenSrc.Cancel();             //Simulate a canceled token from HttpContext.RequestAborted
+        reqTokenSrc.Cancel();                     //Simulate a canceled token from HttpContext.RequestAborted
+        Assert.Equal(2, scopeDropCnt);            //drop scope "_"
         await wsMsg.Publish(tstMsg);
+        Assert.Equal(3, scopeDropCnt);            //drop scope "_" again
         Assert.Equal(2, wrSock.SendCnt);  //no more msg published
         Assert.True(wrSock.IsAborted);
         Assert.False(wrSock.IsDisposed);
         Assert.True(conTsk.IsCompleted || conTsk.IsCanceled);
-        Assert.Equal(1, scopeDropCnt);
       }
       Assert.True(wrSock.IsDisposed);
       wsMsg.Dispose();
@@ -131,7 +173,9 @@ namespace Tlabs.Msg.Intern.Test {
       tstout.WriteLine("MultiSocketPublishTest running...");
       int scopeDropCnt= 0;
       var wsMsg= new WsMessenger<TestMsg>(App.ServiceProv.GetRequiredService<ISerializer<TestMsg>>());
-      wsMsg.DroppedScope+= scope => ++scopeDropCnt;
+      wsMsg.DroppedScope+= scope => {
+        ++scopeDropCnt;
+      };
 
       var reqTokenSrc= new CancellationTokenSource();
       var wrSock= new WriteOnlyMockSocket();
@@ -149,6 +193,7 @@ namespace Tlabs.Msg.Intern.Test {
 
           await wsMsg.Publish(tstMsg);
           await wsMsg.Publish(tstMsg, "ignore");   //tstMsg for this scope must not be written to the socket
+          Assert.Equal(1, scopeDropCnt);           //drop scope "ignore"
           Assert.Equal(1, wrSock.SendCnt);
           Assert.Equal(1, wrSock2.SendCnt);
 
@@ -160,14 +205,14 @@ namespace Tlabs.Msg.Intern.Test {
           Assert.False(wrSock2.IsAborted);
           Assert.False(conTsk2.IsCompleted);
           Assert.Equal(2, wrSock2.SendCnt);
-          Assert.Equal(0, scopeDropCnt);
+          Assert.Equal(1, scopeDropCnt);
           Assert.False(wrSock2.IsDisposed);
         }
       }
       Assert.True(wrSock.IsDisposed);
 
       wsMsg.Dispose();
-      Assert.Equal(1, scopeDropCnt);
+      Assert.Equal(2, scopeDropCnt);    //scope "ignore" and "_" must be dropped
     }
 
 
