@@ -21,7 +21,7 @@ namespace Tlabs.Identity.Intern {
     class LazyCache {
       internal static ICache<string, KeyToken> instance;
       static LazyCache() {
-        instance= new LookupCache<string, KeyToken>(SingletonApiKeyDataStoreRegistry.internalRregisteredKeys().Select(t => new KeyValuePair<string, KeyToken>(t.TokenName, t)));
+        instance= new LookupCache<string, KeyToken>(SingletonApiKeyDataStoreRegistry.internalRregisteredKeys().Select(t => new KeyValuePair<string, KeyToken>(t.TokenName??"", t)));
         log.LogInformation("ApiKey cache initialized with {cnt} key tokens.", instance.Entries.Count());
       }
     }
@@ -33,7 +33,7 @@ namespace Tlabs.Identity.Intern {
     ///<summary>Ctor from <paramref name="options"/></summary>
     public SingletonApiKeyDataStoreRegistry(IOptions<Options> options) {
       this.options= options.Value;
-      if (!cache.Entries.Any()) cache[this.options.initialKey]= new KeyToken {
+      if (!cache.Entries.Any() && null != this.options.initialKey) cache[this.options.initialKey]= new KeyToken {
         TokenName= this.options.initialTokenName,
         Description= "Temporary initial Key - Please delete",
         ValidFrom= App.TimeInfo.Now,
@@ -49,19 +49,19 @@ namespace Tlabs.Identity.Intern {
         throw new ArgumentNullException(nameof(key));
       if (string.IsNullOrEmpty(token.TokenName))
         throw new ArgumentNullException(nameof(token.TokenName));
-      if (null == token.Roles || !token.Roles.Any())
+      if (null == token.Roles || token.Roles.Count==0)
         throw new ArgumentNullException(nameof(token.Roles));
 
       ApiKey apiKey= internalRegister(token, key);
-      
-      cache.Evict(options.initialKey);  //remove initial key if still in cache
+
+      if (null != options.initialKey) cache.Evict(options.initialKey);  //remove initial key if still in cache
 
       return cache[key]= KeyToken.FromEntity(apiKey); //return cached token
     }
 
     ///<inheritdoc/>
-    public KeyToken Deregister(string tokenName) {
-      var tokenKey= cache.Entries.FirstOrDefault(r => r.Value.TokenName == tokenName).Key;
+    public KeyToken? Deregister(string tokenName) {
+      var tokenKey= cache.Entries.SingleOrDefault(r => r.Value.TokenName == tokenName).Key;
       if (null != tokenKey) cache.Evict(tokenKey);
 
       return internalDeregister(tokenName);   //persistently mark as deleted
@@ -74,7 +74,7 @@ namespace Tlabs.Identity.Intern {
     public int RegisteredKeyCount() => internalRregisteredKeys().Length;
 
     ///<inheritdoc/>
-    public KeyToken VerifiedKey(string key) {
+    public KeyToken? VerifiedKey(string key) {
       //try to find token in cache and verify
       var token= cache[key];
       if (null != token) {
@@ -111,24 +111,24 @@ namespace Tlabs.Identity.Intern {
     }
 
     static KeyToken[] internalRregisteredKeys() => ReturnFrom((repo, hasher)
-      => repo.AllUntracked.LoadRelated(repo.Store, k => k.Roles).ThenLoadRelated(repo.Store, k => k.Role)
+      => repo.AllUntracked.LoadRelated(repo.Store, k => k.Roles)!.ThenLoadRelated(repo.Store, k => k.Role)
              .Where(r => r.ValidityState != ApiKey.Status.DELETED.ToString()).Select(r => KeyToken.FromEntity(r)).ToArray()
-    );
-    static KeyToken internalGetValidKeyToken(string key) => ReturnFrom((repo, hasher) => {
+    ) ?? Array.Empty<KeyToken>();
+    static KeyToken? internalGetValidKeyToken(string key) => ReturnFrom((repo, hasher) => {
       var ent= repo.AllUntracked
-                   .LoadRelated(repo.Store, x => x.Roles).ThenLoadRelated(repo.Store, x => x.Role)
+                   .LoadRelated(repo.Store, x => x.Roles)!.ThenLoadRelated(repo.Store, x => x.Role)
                    .Where(r =>
                      r.ValidFrom <= App.TimeInfo.Now
                      && (r.ValidUntil == null || r.ValidUntil > App.TimeInfo.Now)
                      && r.ValidityState == ApiKey.Status.ACTIVE.ToString()
                    )
                   .AsEnumerable() //Load into memory since VerifyHashedPassword does not evaluate in DB
-                  .FirstOrDefault(r => hasher.VerifyHashedPassword(null, r.Hash, key) == PasswordVerificationResult.Success);
-      return KeyToken.FromEntity(ent);
+                  .SingleOrDefault(r => hasher.VerifyHashedPassword(r.TokenName??"", r.Hash??"", key) == PasswordVerificationResult.Success);
+      return null != ent ? KeyToken.FromEntity(ent) : null; //?? throw EX.New<InvalidOperationException>("API key not found: {key}", key));
     });
 
     static ApiKey internalRegister(KeyToken token, string key) => ReturnFrom((repo, hasher) => {
-      var hash= hasher.HashPassword(null, key);
+      var hash= hasher.HashPassword(token.TokenName??"", key);
 
       //first, hash and store in db
       var apiKey= new ApiKey {
@@ -140,7 +140,7 @@ namespace Tlabs.Identity.Intern {
         ValidityState= ApiKey.Status.ACTIVE.ToString()
       };
       apiKey.Roles= repo.Store.Query<Role>()
-                              .Where(r => token.Roles.Contains(r.Name))
+                              .Where(r => token.Roles!.Contains(r.Name!))
                               .Select(r => new ApiKey.RoleRef {
                                 ApiKey= apiKey,
                                 Role= r
@@ -148,10 +148,10 @@ namespace Tlabs.Identity.Intern {
       repo.Insert(apiKey);
       repo.Store.CommitChanges();
       return apiKey;
-    });
+    }) ?? throw EX.New<InvalidOperationException>("Failed to register API key: {key}", token.TokenName ?? "?");
 
-    static KeyToken internalDeregister(string tokenName) => ReturnFrom((repo, hasher) => {
-      var apiKey= repo.All.FirstOrDefault(r => r.TokenName == tokenName);
+    static KeyToken? internalDeregister(string tokenName) => ReturnFrom((repo, hasher) => {
+      var apiKey= repo.All.SingleOrDefault(r => r.TokenName == tokenName);
       if (null == apiKey || apiKey.ValidityState == ApiKey.Status.DELETED.ToString())
         return null;
 
@@ -163,10 +163,10 @@ namespace Tlabs.Identity.Intern {
       return KeyToken.FromEntity(apiKey);
     });
 
-    static T ReturnFrom<T>(Func<IRepo<ApiKey>, IPasswordHasher<User>, T> doWith) {
-      T ret= default;
+    static T? ReturnFrom<T>(Func<IRepo<ApiKey>, IPasswordHasher<string>, T> doWith) {
+      T? ret= default;
       Tlabs.App.WithServiceScope(prov => {
-        ret= doWith(prov.GetService<IRepo<ApiKey>>(), prov.GetService<IPasswordHasher<User>>());
+        ret= doWith(prov.GetRequiredService<IRepo<ApiKey>>(), prov.GetRequiredService<IPasswordHasher<string>>());
       });
       return ret;
     }
@@ -174,9 +174,9 @@ namespace Tlabs.Identity.Intern {
     ///<summary>Options for the registry</summary>
     public class Options {
       ///<summary>initialKey</summary>
-      public string initialKey { get; set; }
+      public string? initialKey { get; set; }
       ///<summary>initialTokenName</summary>
-      public string initialTokenName { get; set; }
+      public string? initialTokenName { get; set; }
       ///<summary>initialValidHours</summary>
       public int? initialValidHours { get; set; }
       ///<summary>genKeyLength</summary>

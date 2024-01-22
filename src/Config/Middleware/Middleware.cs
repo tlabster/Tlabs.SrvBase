@@ -9,9 +9,9 @@ namespace Tlabs.Config {
   ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
   public class MiddlewareContext {
     ///<summary>Web hosting environment</summary>
-    public IWebHostEnvironment HostingEnv { get; set; }
+    public required IWebHostEnvironment HostingEnv { get; set; }
     ///<summary>Application builder to be configured.</summary>
-    public IApplicationBuilder AppBuilder { get; set; }
+    public required IApplicationBuilder AppBuilder { get; set; }
   }
 
   ///<summary>Configurator to add additional assembly path(s).</summary>

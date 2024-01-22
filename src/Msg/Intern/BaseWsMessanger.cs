@@ -112,7 +112,7 @@ namespace Tlabs.Msg.Intern {
 
       ///<inheritdoc/>
       public void Dispose() {
-        if ((uint)BOOL.TRUE == Interlocked.CompareExchange(ref isDisposed, (uint)BOOL.FALSE, (uint)BOOL.TRUE)) return;     //already disposed
+        if (0 != Interlocked.Exchange(ref isDisposed, 1)) return;
         try {
           onDispose?.Invoke(this);
           ws.Abort();

@@ -18,7 +18,7 @@ namespace Tlabs.Server.Controller {
     public string ActionRoute => $"{ControllerContext.ActionDescriptor?.ControllerName}/{ControllerContext.ActionDescriptor?.ActionName}";
 
     ///<summary>Resolve API error from exception.</summary>
-    protected virtual string resolveError(Exception e, string msg0= null) {
+    protected virtual string resolveError(Exception e, string? msg0= null) {
       e.Source= ActionRoute;
       // var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;

@@ -38,7 +38,7 @@ namespace Tlabs.Config {
     public KestrelConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/> dictionary</summary>
-    public KestrelConfigurator(IDictionary<string, string> config) {
+    public KestrelConfigurator(IDictionary<string, string>? config) {
       this.config= config ?? new Dictionary<string, string>();
     }
 

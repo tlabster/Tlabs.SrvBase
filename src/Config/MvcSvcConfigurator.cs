@@ -22,7 +22,7 @@ namespace Tlabs.Config {
     public MvcSvcConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public MvcSvcConfigurator(IDictionary<string, string> config) {
+    public MvcSvcConfigurator(IDictionary<string, string>? config) {
       this.config= config ?? new Dictionary<string, string>();
     }
 
@@ -41,7 +41,7 @@ namespace Tlabs.Config {
           }
         }
       }).AddJsonOptions(configureJsonOptions)
-        .AddApplicationPart(Assembly.GetEntryAssembly());
+        .AddApplicationPart(Assembly.GetEntryAssembly()!);
 
       log.LogInformation("ASP.NET MVC framework services added.");
     }

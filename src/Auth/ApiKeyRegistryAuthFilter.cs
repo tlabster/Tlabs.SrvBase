@@ -21,7 +21,7 @@ namespace Tlabs.Server.Auth {
     ///<summary>Ctor</summary>
     public ApiKeyRegistryAuthFilter(IRolesAdministration rolesAdm, IApiKeyRegistry apiKeyRegistry, IOptions<Options> options) : base(rolesAdm) {
       this.apiKeyRegistry= apiKeyRegistry;
-      this.pathPattern= new Regex(options.Value.pathPolicy, RegexOptions.Compiled);
+      this.pathPattern= new Regex(options.Value.pathPolicy ?? "", RegexOptions.Compiled);
     }
 
     ///<inheritdoc/>
@@ -31,25 +31,25 @@ namespace Tlabs.Server.Auth {
         if (!context.HttpContext.Request.Headers.ContainsKey(HEADER_AUTH_KEY)) {
           // If no other filter is set also return unauthorized
           if (!context.Filters.Any(item => item is AuthCookieAuthorizationFilter)) {
-            unauthorized(context);
+            setUnauthorized(context);
           }
           return;
         }
 
         var key= extractKey(context);
         if (null == key) {
-          unauthorized(context);
+          setUnauthorized(context);
           return;
         }
 
         var token= apiKeyRegistry.VerifiedKey(key);
-        if (null == token || null == token.Roles || !token.Roles.Any()) {
-          unauthorized(context);
+        if (null == token || null == token.Roles || 0 == token.Roles.Count) {
+          setUnauthorized(context);
           return;
         }
         // In case API is used set new principal in context to set current user to API key
         var identity= new ClaimsIdentity("Identity.ApiKey");
-        identity.AddClaim(new Claim(ClaimTypes.Name, token.TokenName));
+        identity.AddClaim(new Claim(ClaimTypes.Name, token.TokenName ?? "<null>"));
         if(token.Roles != null)
           foreach(var role in token.Roles)
             identity.AddClaim(new Claim(ClaimTypes.Role, role));
@@ -57,28 +57,21 @@ namespace Tlabs.Server.Auth {
           new List<ClaimsIdentity> { identity }
         );
 
-        if (checkRoles(token.Roles.ToArray(), context)) {
-          return;
-        }
+        if (checkRoles(token.Roles, context)) return;
 
-        forbidden(context);
+        setForbidden(context);
       }
       catch (Exception e) {
-        errorResult(context, e);
+        setError(context, e);
       }
     }
 
-    private string extractKey(AuthorizationFilterContext context) {
-      string key= null;
-      var route= context.ActionDescriptor.AttributeRouteInfo.Template;
+    private string? extractKey(AuthorizationFilterContext context) {
+      var route= context.ActionDescriptor.AttributeRouteInfo?.Template;
       var authorize= context.HttpContext.Request.Headers[HEADER_AUTH_KEY];
-      if (1 == authorize.Count) {
-        var authParts= authorize[0].Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (2 == authParts.Length && string.Equals(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
-          key= authParts[1];
-      }
+      string? key= BaseAuthFilter.ParseAuthorizationKey(authorize);
 
-      if (!pathPattern.IsMatch(route)) return null;
+      if (!pathPattern.IsMatch(route ?? "")) return null;
       return key;
     }
 
@@ -86,7 +79,7 @@ namespace Tlabs.Server.Auth {
     ///<summary>Filter options.</summary>
     public class Options {
       ///<summary>Path policy regex pattern.</summary>
-      public string pathPolicy { get; set; }
+      public string? pathPolicy { get; set; }
     }
 
     /// <summary>Configurator</summary>

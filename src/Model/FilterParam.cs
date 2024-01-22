@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Tlabs.Data.Model;
-using Tlabs.Data.Serialize;
 using Tlabs.Data.Serialize.Json;
+using static Tlabs.Data.Serialize.Json.JsonFormat;
 
 namespace Tlabs.Server.Model {
   ///<summary>Paging (query) parameter model to be bound via MVC model binding.</summary>
@@ -43,45 +43,44 @@ namespace Tlabs.Server.Model {
   ///</para>
   ///</remarks>
   public class FilterParam<TEntity> : PagingParam {
-    static readonly IDynamicSerializer JSON= JsonFormat.CreateDynSerializer();
+    static readonly DynamicSerializer JSON= JsonFormat.CreateDynSerializer();
     ///<summary>Filter list.</summary>
-    private string filterStr;
-    private string sorterStr;
-    ///<summary>Sorter list.</summary>
+    private string? filterStr;
+    private string? sorterStr;
 
-    ///<summary>Default ctor.</summary>
-    public FilterParam() {
-      this.FilterList= Enumerable.Empty<Filter>();
-      this.SorterList= Enumerable.Empty<Sorter>();
-    }
     ///<summary>filter string with format: <c>[{"property":"lastname","value":"aal","operator":"like"}]</c>.</summary>
-    public string filter {
+    public string? filter {
       get => filterStr;
-      set => this.FilterList= (IList<Filter>)JSON.LoadObj(filterStr= value, typeof(IList<Filter>));
+      set => this.FilterList=   !string.IsNullOrWhiteSpace(filterStr= value)
+                              ? JSON.LoadObj(filterStr, typeof(IList<Filter>)) as IEnumerable<Filter>
+                              : null;
     }
 
     ///<summary>List of <see cref="Filter"/>(s).</summary>
-    public IEnumerable<Filter> FilterList { get; set; }
+    public IEnumerable<Filter>? FilterList { get; set; }
 
     ///<summary>sort string with format: <c>[{"property":"fieldName","direction":"ASC"}]</c>.</summary>
-    public string sort {
+    public string? sort {
       get { return sorterStr; }
-      set => this.SorterList= (IList<Sorter>)JSON.LoadObj(sorterStr= value, typeof(IList<Sorter>));
+      set => this.SorterList=   !string.IsNullOrWhiteSpace(sorterStr= value)
+                              ? JSON.LoadObj(sorterStr, typeof(IList<Sorter>)) as IEnumerable<Sorter>
+                              : null;
     }
 
     ///<summary>List of <see cref="Sorter"/>(s).</summary>
-    public IEnumerable<Sorter> SorterList { get; set;}
+    public IEnumerable<Sorter>? SorterList { get; set;}
 
     /// <summary>Filters that are enforced</summary>
-    public Dictionary<string, string> EnforcedFilters { get; set; }
+    [Obsolete("This is no longer recognized - enforced access filters are applied with RoleDefaultParamsFilter ", false)]
+    public Dictionary<string, string>? EnforcedFilters { get; set; }
 
     /// <summary>Return <see cref="QueryFilter"/> from this filter parameter(s).</summary>
     public QueryFilter AsQueryFilter()
       => new QueryFilter {
         Start= this.start,
         Limit= this.limit,
-        Properties= this.FilterList.ToDictionary(f => f.property, f => (IConvertible)f.value),
-        SortAscBy= this.SorterList.ToDictionary(s => s.property, s => s.IsAscSort())
+        Properties= this.FilterList?.ToDictionary(f => f.property ?? "?", f => f.value as IConvertible)!,
+        SortAscBy= this.SorterList?.ToDictionary(s => s.property ?? "?", s => s.IsAscSort())!
       };
 
   }
@@ -89,11 +88,11 @@ namespace Tlabs.Server.Model {
   ///<summary>Filter descriptor.</summary>
   public class Filter {
     ///<summary>Field/property name.</summary>
-    public string property { get; set; }
+    public string? property { get; set; }
     ///<summary>Value to compare.</summary>
-    public string value { get; set; }
+    public string? value { get; set; }
     ///<summary>Compare operator.</summary>
-    public string @operator { get; set; }
+    public string? @operator { get; set; }
   }
 
   ///<summary>Sorter descriptor.</summary>
@@ -101,9 +100,9 @@ namespace Tlabs.Server.Model {
     ///<summary>Value for sort direction ascending</summary>
     public const string ASC= "ASC";
     ///<summary>Field/property name.</summary>
-    public string property { get; set; }
+    public string? property { get; set; }
     ///<summary>Sort direction.</summary>
-    public string direction { get; set; }
+    public string? direction { get; set; }
 
     ///<summary>Check for ASC sort direction.</summary>
     public bool IsAscSort() => string.IsNullOrEmpty(this.direction) || string.Equals(ASC, this.direction, StringComparison.OrdinalIgnoreCase);

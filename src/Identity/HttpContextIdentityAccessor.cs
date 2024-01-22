@@ -4,7 +4,6 @@ using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Options;
 
 using Tlabs.Identity;
@@ -32,9 +31,9 @@ namespace Tlabs.Identity {
       }
     }
     ///<inheritdoc/>
-    public override string Name => Principal.Identity.Name;
+    public override string Name => Principal.Identity?.Name ?? "?";
     ///<inheritdoc/>
-    public override string AuthenticationType => Principal.Identity.AuthenticationType;
+    public override string AuthenticationType => Principal.Identity?.AuthenticationType ?? "?";
     ///<inheritdoc/>
     public override int Id {
       get {
@@ -47,7 +46,8 @@ namespace Tlabs.Identity {
     ///<inheritdoc/>
     public override string[] Roles {
       get {
-        return new string[] { Principal.FindFirstValue(identOpt.ClaimsIdentity.RoleClaimType) };
+        var role= Principal.FindFirstValue(identOpt.ClaimsIdentity.RoleClaimType);
+        return null != role ? new string[] { role } : Array.Empty<string>();
       }
     }
   }

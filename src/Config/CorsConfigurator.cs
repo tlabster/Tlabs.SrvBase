@@ -21,7 +21,7 @@ namespace Tlabs.Config {
   ///      "AllowedOrigins": ["http://localhost:8086", "http://*.pol-it.de"]
   ///     }
   ///  }
-  ///</code> 
+  ///</code>
   ///2. Configure a named CORS policy with section 'applicationServices'
   ///<code>
   ///  "applicationServices": {
@@ -63,7 +63,7 @@ namespace Tlabs.Config {
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
-      PolicyOptions polOpt= null;
+      PolicyOptions? polOpt= null;
       var optCfg= cfg.GetSection("options");
       if (optCfg.GetChildren().Any()) {
         polOpt= new PolicyOptions();
@@ -95,23 +95,23 @@ namespace Tlabs.Config {
       ///<summary>True enable wildcard subdomain match with <ssee cref="AllowedOrigins"/>.</summary>
       public bool AllowWildcardSubdomain { get; set; }
       ///<summary>List of allowed origin(s).</summary>
-      public string[] AllowedOrigins { get; set; }
+      public string[]? AllowedOrigins { get; set; }
       ///<summary>List of allowed header(s)</summary>
-      public string[] AllowedHeaders { get; set; }
+      public string[]? AllowedHeaders { get; set; }
       ///<summary>List of exposed header(s)</summary>
-      public string[] AllowedExposedHeaders { get; set; }
+      public string[]? AllowedExposedHeaders { get; set; }
       ///<summary>List of allowed method(s)</summary>
-      public string[] AllowedMethods { get; set; }
+      public string[]? AllowedMethods { get; set; }
 
       ///<summary>Configure CORS policy</summary>
       public CorsPolicyBuilder Configure(CorsPolicyBuilder pb) {
         pb.SetPreflightMaxAge(new TimeSpan(0, 0, PreflightMaxAge));
-        
+
         if (AllowWildcardSubdomain) pb.SetIsOriginAllowedToAllowWildcardSubdomains();
-        
+
         if (AllowCredentials) pb.AllowCredentials();
         else pb.DisallowCredentials();
-        
+
         if (AllowAnyHeader) pb.AllowAnyHeader();
         else if (null != AllowedHeaders) pb.WithHeaders(AllowedHeaders);
         if (null != AllowedExposedHeaders) pb.WithExposedHeaders(AllowedExposedHeaders);

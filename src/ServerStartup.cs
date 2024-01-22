@@ -20,11 +20,12 @@ namespace Tlabs.Server {
     ///<summary>Default section of the configuratiion to be used for the start-up hosting environment setup.</summary>
     public const string DFLT_HOST_SECTION= "webHosting";
     const string APP_MIDDLEWARE_SECTION= "applicationMiddleware";
+    static readonly string[] ANY_HOST= new[] { "*" };
 
     ///<summary>Create a <see cref="IHostBuilder"/> from optional command line <paramref name="args"/>.</summary>
-    public static IHostBuilder CreateServerHostBuilder(string[] args= null) => CreateServerHostBuilder(DFLT_HOST_SECTION, args);
+    public static IHostBuilder CreateServerHostBuilder(string[]? args= null) => CreateServerHostBuilder(DFLT_HOST_SECTION, args);
     ///<summary>Create a <see cref="IHostBuilder"/> from <paramref name="hostSection"/> and command line <paramref name="args"/>.</summary>
-    public static IHostBuilder CreateServerHostBuilder(string hostSection, string[] args= null) {
+    public static IHostBuilder CreateServerHostBuilder(string hostSection, string[]? args= null) {
 
       var hostBuilder= Tlabs.ApplicationStartup.CreateAppHostBuilder(hostSection, args, (hostBuilder, hostSettings) => {
         /* This prepares the configuration of the actual Microsoft.AspNetCore.Hosting.Server.IServer to be hosted as as a IHostedService...
@@ -36,7 +37,7 @@ namespace Tlabs.Server {
 
           webBuilder.UseConfiguration(hostSettings);  //<- use properties from hostSettings (properties defined in https://github.com/dotnet/aspnetcore/blob/main/src/Hosting/Hosting/src/Internal/WebHostOptions.cs )
           webBuilder.UseStartup<ApplicationStartup>();
-          webBuilder.UseSetting(HostDefaults.ApplicationKey, Assembly.GetEntryAssembly().GetName().Name); //fix assembly name being set by UseStartup<>...
+          webBuilder.UseSetting(HostDefaults.ApplicationKey, Assembly.GetEntryAssembly()?.GetName().Name); //fix assembly name being set by UseStartup<>...
           configureDefaultHostfiltering(webBuilder);
           webBuilder.ConfigureServices((WebHostBuilderContext hostingContext, IServiceCollection services) => {
             services.AddRouting();
@@ -54,9 +55,9 @@ namespace Tlabs.Server {
         services.PostConfigure<HostFilteringOptions>(options => {
           if (options.AllowedHosts == null || options.AllowedHosts.Count == 0) {
             // "AllowedHosts": "localhost;127.0.0.1;[::1]"
-            var hosts = hostingContext.Configuration["AllowedHosts"]?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var hosts= hostingContext.Configuration["AllowedHosts"]?.Split(';' , StringSplitOptions.RemoveEmptyEntries);
             // Fall back to "*" to disable.
-            options.AllowedHosts = (hosts?.Length > 0 ? hosts : new[] { "*" });
+            options.AllowedHosts= (hosts?.Length > 0 ? hosts : ANY_HOST);
           }
         });
         // Change notification
@@ -75,7 +76,7 @@ namespace Tlabs.Server {
         isForwardedHeaders= string.Equals("true", hostingContext.Configuration["ForwardedHeaders_Enabled"], StringComparison.OrdinalIgnoreCase);
         if (!isForwardedHeaders) return;
         services.Configure<ForwardedHeadersOptions>(options => {
-          options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+          options.ForwardedHeaders= ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
           // Only loopback proxies are allowed by default. Clear that restriction because forwarders are
           // being enabled by explicit configuration.
           options.KnownNetworks.Clear();

@@ -8,7 +8,7 @@ namespace Tlabs.Server.Audit {
     ///<summary>Lists the audit trail history </summary>
     IResultList<Model.AuditRecord> List(QueryFilter filter);
 
-    ///<summary>Lists the audit trail history </summary>
-    Model.AuditRecord StoreTrail(FilterContext context, bool storeBody= false);
+    ///<summary>Store trail</summary>
+    Model.AuditRecord? StoreTrail(FilterContext context, bool storeBody= false);
   }
 }

@@ -37,18 +37,7 @@ namespace Tlabs.Server.Audit {
         }
       else query= query.OrderBy(d => d.Modified);
 
-      var recs= query.Select(a => new Model.AuditRecord {
-        AccessTime= a.Modified,
-        ActionName= a.ActionName,
-        BodyData= a.BodyData,
-        Editor= a.Editor,
-        IPAddress= a.IPAddress,
-        Method= a.Method,
-        StatusCode= a.StatusCode,
-        Error= a.Error,
-        Success= a.Success,
-        URL= a.URL
-      });
+      var recs= query.Select(a => Model.AuditRecord.FromEntity(a) );
 
       var limit= recs;
       if (filter.Start.HasValue)
@@ -63,32 +52,31 @@ namespace Tlabs.Server.Audit {
     }
 
     ///<inheritdoc/>
-    public Model.AuditRecord StoreTrail(FilterContext context, bool storeBody= false) {
+    public Model.AuditRecord? StoreTrail(FilterContext context, bool storeBody= false) {
       var httpContext= context.HttpContext;
-      var request = httpContext.Request;
+      var request= httpContext.Request;
       var connection= httpContext.Connection;
 
       if(HttpMethods.IsGet(httpContext.Request.Method)) return null;
 
       var audit= new AuditRecord {
-        ActionName= httpContext.GetRouteData().Values["Controller"].ToString() + "/" + httpContext.GetRouteData().Values["Action"].ToString(),
-        IPAddress= connection.RemoteIpAddress.ToString(),
+        ActionName= httpContext.GetRouteData().Values["Controller"]?.ToString() + "/" + httpContext.GetRouteData().Values["Action"]?.ToString(),
+        IPAddress= connection.RemoteIpAddress?.ToString(),
         URL= Microsoft.AspNetCore.Http.Extensions.UriHelper.GetDisplayUrl(request),
         Method= httpContext.Request.Method,
         StatusCode= httpContext.Response.StatusCode.ToString(App.DfltFormat)
       };
 
-      if(context is ResultExecutingContext) {
-        var c= context as ResultExecutingContext;
-        if (c.Result is Model.BaseCover res) {
+      if(context is ResultExecutingContext rcx) {
+        if (rcx.Result is Model.BaseCover res) {
           audit.Error= res.error;
-
-          audit.Error= null != res.errDetails.msgData && res.errDetails.msgData.ContainsKey("joinedErrors") ?
-            res.errDetails.msgData["joinedErrors"] as string : res.error;
+          object? v= null;
+          audit.Error=   false == res.errDetails?.msgData?.TryGetValue("joinedErrors", out v) || v is not string err
+                       ? res.error
+                       : err;
         }
-      } else if(context is ExceptionContext) {
-        var c= context as ExceptionContext;
-        audit.Error= c.Exception.Message;
+      } else if (context is ExceptionContext cx) {
+        audit.Error= cx.Exception.Message;
       }
 
       if((!audit.Success || storeBody) && null != request.Body && request.Body.CanSeek) {
@@ -98,7 +86,7 @@ namespace Tlabs.Server.Audit {
 
       repo.Insert(audit);
       repo.Store.CommitChanges();
-      return null;
+      return Model.AuditRecord.FromEntity(audit);
     }
 
     static string readBody(Stream st) {
@@ -106,7 +94,8 @@ namespace Tlabs.Server.Audit {
       return reader.ReadToEnd();
     }
 
-    static readonly IDictionary<string, QueryFilter.FilterExpression<AuditRecord>> filterMap= new Dictionary<string, QueryFilter.FilterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
+#nullable disable
+    static readonly Dictionary<string, QueryFilter.FilterExpression<AuditRecord>> filterMap= new(StringComparer.OrdinalIgnoreCase) {
       [nameof(Model.AuditRecord.URL)]= (q, cv) => q.Where(m => m.URL.Contains(cv.ToString())),
       [nameof(Model.AuditRecord.Editor)]= (q, cv) => q.Where(m => m.Editor.Contains(cv.ToString())),
       [nameof(Model.AuditRecord.Method)]= (q, cv) => q.Where(m => m.Method.StartsWith(cv.ToString())),
@@ -116,7 +105,7 @@ namespace Tlabs.Server.Audit {
       [nameof(Model.AuditRecord.Success)]= (q, cv) => q.Where(m => m.Success == cv.ToBoolean(CultureInfo.InvariantCulture))
     };
 
-    static readonly IDictionary<string, QueryFilter.SorterExpression<AuditRecord>> sorterMap= new Dictionary<string, QueryFilter.SorterExpression<AuditRecord>>(StringComparer.OrdinalIgnoreCase) {
+    static readonly Dictionary<string, QueryFilter.SorterExpression<AuditRecord>> sorterMap= new (StringComparer.OrdinalIgnoreCase) {
       [nameof(Model.AuditRecord.URL)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.URL) : q.OrderByDescending(m => m.URL),
       [nameof(Model.AuditRecord.Editor)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Editor) : q.OrderByDescending(m => m.Editor),
       [nameof(Model.AuditRecord.Method)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Method) : q.OrderByDescending(m => m.Method),
@@ -125,6 +114,7 @@ namespace Tlabs.Server.Audit {
       [nameof(Model.AuditRecord.StatusCode)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.StatusCode) : q.OrderByDescending(m => m.StatusCode),
       [nameof(Model.AuditRecord.Success)]= (q, isAsc) => isAsc ? q.OrderBy(m => m.Success) : q.OrderByDescending(m => m.Success)
     };
+#nullable restore
 
   }
 }
