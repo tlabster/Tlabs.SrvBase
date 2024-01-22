@@ -22,6 +22,7 @@
     <IsPackable>true</IsPackable>
     <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://bitbucket.org/tlabster/tlabs.srvbase</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +35,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.*" />
+
+    <None Include="../README.md" Pack="true" PackagePath=""/>
   </ItemGroup>
 
 </Project>
