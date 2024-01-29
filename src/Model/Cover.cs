@@ -36,7 +36,7 @@ namespace Tlabs.Server.Model {
       get { return string.IsNullOrEmpty(error); }
     }
     ///<summary>Any description of an error causing the model retrieval to fail.</summary>
-    public required string error { get; set; }
+    public string? error { get; set; }
 
     ///<summary>Any details of the error causing the model retrieval to fail.</summary>
     public ErrorDetails? errDetails { get; set; }
@@ -59,7 +59,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for a single model object being provided from delegate.</summary>
   public class ModelCover<M> : AbstractCover<M> {
     ///<summary>Default ctor.</summary>
-    protected ModelCover() { }
+    public ModelCover() { }
     ///<summary>Ctor from <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
     ///<code>
@@ -87,7 +87,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for the result of a data query for model objects.</summary>
   public class QueryCover<M> : AbstractCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
-    protected QueryCover() { }
+    public QueryCover() { }
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string>? provideErrMessage= null) {
       try {
@@ -105,7 +105,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for the result of a <see cref="IQueryable{T}"/> returned as a projected <see cref="IEnumerable{M}"/>.</summary>
   public class QueryCover<T, M> : QueryCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
-    protected QueryCover() { }
+    public QueryCover() { }
     ///<summary>Ctor from <paramref name="query"/> and <paramref name="selector"/>.</summary>
     public QueryCover(IQueryable<T> query, Expression<Func<T, M>> selector) {
       var p= new QueryProjector<T, M>(query, selector);
