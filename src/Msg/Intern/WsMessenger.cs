@@ -1,6 +1,5 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
@@ -43,7 +42,7 @@ namespace Tlabs.Msg.Intern {
     /// <inheritdoc/>
     [Obsolete("Use overload taking Action<ReadOnlyMemory<byte>, string>? msgReceiver", error: false)]
     public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope, Action<byte[], string>? receiveMessageData) {
-      void msgReceiver(ReadOnlyMemory<byte> msg, string scope) => receiveMessageData?.Invoke(msg.ToArray(), scope);
+      void msgReceiver(ReadOnlySequence<byte> msg, string scope) => receiveMessageData?.Invoke(msg.ToArray(), scope);
       if (ctk.IsCancellationRequested) return Task.FromCanceled(ctk);
       var con= new SocketConnection(socket, scope ?? IWsMessenger<T>.DFLT_SCOPE, opt, ctk, msgReceiver, handleSocketConnectionDispose);
       connections.Add(con);
@@ -51,7 +50,7 @@ namespace Tlabs.Msg.Intern {
     }
 
     /// <inheritdoc/>
-    public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope= null, Action<ReadOnlyMemory<byte>, string>? receiveMessageData= null) {
+    public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope= null, Action<ReadOnlySequence<byte>, string>? receiveMessageData= null) {
       if (ctk.IsCancellationRequested) return Task.FromCanceled(ctk);
       var con= new SocketConnection(socket, scope ?? IWsMessenger<T>.DFLT_SCOPE, opt, ctk, receiveMessageData, handleSocketConnectionDispose);
       connections.Add(con);

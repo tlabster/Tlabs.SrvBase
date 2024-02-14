@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.WebSockets;
@@ -135,10 +136,10 @@ namespace Tlabs.Msg.Intern.Test {
       var rwSock= new ReadWriteMockSocket();
       var msgReceived= new TaskCompletionSource();
       // var tstMsg= new TestMsg();
-      ReadOnlyMemory<byte> recMem= default;
+      ReadOnlySequence<byte> recMem= default;
       string recScope= null;
       using (var ws= rwSock.Socket) {
-        var conTsk= wsMsg.RegisterConnection(ws, reqTokenSrc.Token, "_", (ReadOnlyMemory<byte> buf, string scope) => {
+        var conTsk= wsMsg.RegisterConnection(ws, reqTokenSrc.Token, "_", (ReadOnlySequence<byte> buf, string scope) => {
           recMem= buf;
           recScope= scope;
           rwSock.ListeningRdySrc= new();
@@ -150,6 +151,7 @@ namespace Tlabs.Msg.Intern.Test {
         await Task.Yield();
 
         rwSock.Receive("{  }");
+        await rwSock.ReceivedSrc.Task.Timeout(200);
         await msgReceived.Task;//.Timeout(200);
         Assert.Equal("_", recScope);
         await rwSock.ListeningRdySrc.Task.Timeout(200);
@@ -157,7 +159,7 @@ namespace Tlabs.Msg.Intern.Test {
 
         rwSock.waitToReceiveCnt= 0;
         msgReceived= new();
-        rwSock.Receive($"{{ {new string(' ', 2500)} }}");   //msg > 2048 bytes
+        rwSock.Receive($"{{ {new string(' ', 4096 + 1234)} }}");   //msg > 4096 bytes
         await msgReceived.Task;//.Timeout(200);
         await rwSock.ListeningRdySrc.Task;//.Timeout(200);
         Assert.Equal(2, rwSock.waitToReceiveCnt);

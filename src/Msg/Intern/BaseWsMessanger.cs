@@ -1,7 +1,4 @@
-﻿#nullable enable
-
-using System;
-using System.Linq;
+﻿using System;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +10,7 @@ using Microsoft.Extensions.Options;
 
 using Tlabs.Config;
 using System.Buffers;
+using Tlabs.Misc;
 
 namespace Tlabs.Msg.Intern {
 
@@ -56,7 +54,7 @@ namespace Tlabs.Msg.Intern {
         string scope,
         Options opt,
         CancellationToken ctk,
-        Action<ReadOnlyMemory<byte>, string>? receivePayloadMsg= null,
+        Action<ReadOnlySequence<byte>, string>? receivePayloadMsg= null,
         Action<SocketConnection>? onDispose= null
       ) {
         this.ws= ws;
@@ -83,17 +81,16 @@ namespace Tlabs.Msg.Intern {
       /// <summary>Write <paramref name="msgData"/></summary>
       public Task WriteMessage(byte[] msgData) => ws.SendAsync(msgData, WebSocketMessageType.Text, true, ctk);
 
-      private void startReceivingMessages(Action<ReadOnlyMemory<byte>, string>? msgReciever) {
-        int msgChnk= 2048;
-        var buffer= new ArrayBufferWriter<byte>(msgChnk);
+      private void startReceivingMessages(Action<ReadOnlySequence<byte>, string>? msgReciever) {
+        var buffer= new SegmentSequenceBuffer();
         /* Start the message reception pump in background:
          * NOTE: The socket MUST always listen to receive messages in order to have the close handshake being processed...
          */
         _= Task.Run(async ()=> {
           try {
             while (IsReady && !ctk.IsCancellationRequested) {
-              var res= await ws.ReceiveAsync(buffer.GetMemory(buffer.FreeCapacity), ctk);
-              buffer.Advance(res.Count);
+              var res= await ws.ReceiveAsync(buffer.GetMemory(), ctk);
+              buffer.Advance(res.Count, false);
               // if (res.MessageType == WebSocketMessageType.Close) Dispose();
               if (res.MessageType != WebSocketMessageType.Text) throw new WebSocketException("Invalid message type");
 
@@ -102,20 +99,20 @@ namespace Tlabs.Msg.Intern {
               while (!res.EndOfMessage) {
                 if (!IsReady || ctk.IsCancellationRequested) return;
                 if (buffer.WrittenCount >= opt.MaxMsgSize) {
-                  buffer.ResetWrittenCount();
-                  while (!res.EndOfMessage) res= await ws.ReceiveAsync(buffer.GetMemory(buffer.FreeCapacity), ctk);
+                  buffer.Reset();
+                  var mem= buffer.GetMemory();
+                  while (!res.EndOfMessage) res= await ws.ReceiveAsync(mem, ctk);
                   log.LogWarning("Msg. exeeded max. size ({sz}) - skipped!", opt.MaxMsgSize);
                   break;
                 }
-                msgChnk= Math.Min(2*msgChnk, opt.MaxMsgSize - buffer.WrittenCount);
-                res= await ws.ReceiveAsync(buffer.GetMemory(msgChnk), ctk);
-                buffer.Advance(res.Count);
+                res= await ws.ReceiveAsync(buffer.GetMemory(), ctk);
+                buffer.Advance(res.Count, false);
               }
               if (buffer.WrittenCount > 0) try {
-                msgReciever?.Invoke(buffer.WrittenMemory, Scope);     //call message reciever
+                msgReciever?.Invoke(buffer.Sequence, Scope);     //call message reciever
               }
               catch (Exception e) { log.LogWarning("Error receiving message ({msg})", e.Message); }
-              buffer.ResetWrittenCount();
+              buffer.Reset();
             }
           }
           catch (Exception e) when (e is not TaskCanceledException) { log.LogError(e, "WebSocket error"); }

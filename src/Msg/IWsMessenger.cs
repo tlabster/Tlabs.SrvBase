@@ -1,6 +1,5 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Threading;
@@ -19,7 +18,7 @@ namespace Tlabs.Msg {
     /// <summary>Register <paramref name="socket"/> connection with <paramref name="ctk"/>
     /// and optional <paramref name="scope"/> and also optional <paramref name="msgReceiver"/>
     /// </summary>
-    Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope= null, Action<ReadOnlyMemory<byte>, string>? msgReceiver= null);
+    Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope= null, Action<ReadOnlySequence<byte>, string>? msgReceiver= null);
 
     /// <summary>Register <paramref name="socket"/> connection with <paramref name="ctk"/>
     /// and optional <paramref name="scope"/> and also optional <paramref name="msgReceiver"/>
