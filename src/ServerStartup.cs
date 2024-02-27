@@ -87,11 +87,6 @@ namespace Tlabs.Server {
       });
     }
 
-    private static void onShutdown() {
-      App.Logger<ApplicationStartup>().LogCritical("Shutdown.\n\n");
-      Serilog.Log.CloseAndFlush();
-    }
-
     readonly IWebHostEnvironment env;
 
     ///<summary>Ctor taking <paramref name="env"/>.</summary>
@@ -102,16 +97,11 @@ namespace Tlabs.Server {
 
     ///<summary>Configure application service provider container.</summary>
     ///<remarks>This method gets called by the runtime before calling Configure().</remarks>
-    public void ConfigureServices(IServiceCollection services) {
-      services.ApplyConfigurators(App.Settings, Tlabs.ApplicationStartup.APP_SVC_SECTION);
-    }
+    public void ConfigureServices(IServiceCollection services) { }
 
     ///<summary>Configure the application middleware (HTTP request pipeline).</summary>
     ///<remarks>This method gets called by the runtime after services have been configured with ConfigureServices().</remarks>
     public void Configure(IApplicationBuilder app) {
-      App.InternalInitSvcProv(app.ApplicationServices);
-      App.AppLifetime.ApplicationStopped.Register(onShutdown);
-
       app.UseHostFiltering(); // Should be first in the pipeline
       if (isForwardedHeaders) app.UseForwardedHeaders();
 

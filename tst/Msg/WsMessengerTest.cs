@@ -23,13 +23,13 @@ namespace Tlabs.Msg.Intern.Test {
     public class Fixture : AbstractServiceProviderFactory {
       public Fixture() {
 
-        var logFac= LoggerFactory.Create(log => {
-          log.AddConsole()
-           .AddConsoleFormatter<CustomStdoutFormatter, CustomStdoutFormatterOptions>()
-           .SetMinimumLevel(LogLevel.Information)
-           .AddFilter("Microsoft", LogLevel.Warning);
-        });
-        App.LogFactory= logFac;
+        // var logFac= LoggerFactory.Create(log => {
+        //   log.AddConsole()
+        //    .AddConsoleFormatter<CustomStdoutFormatter, CustomStdoutFormatterOptions>()
+        //    .SetMinimumLevel(LogLevel.Information)
+        //    .AddFilter("Microsoft", LogLevel.Warning);
+        // });
+        // App.LogFactory= logFac;
 
         this.svcColl.AddLogging();
 

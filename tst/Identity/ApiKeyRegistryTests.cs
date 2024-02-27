@@ -35,7 +35,10 @@ namespace Tlabs.Identity.Intern.Test {
       public IServiceScope SvcScope { get; }
       public IServiceScopeFactory SvcScopeFactory { get; }
       public IOptions<SingletonApiKeyDataStoreRegistry.Options> Options { get; }
+      IServiceProvider saveSvcProv;
+
       public Fixture() {
+        this.saveSvcProv= App.ServiceProv;
         this.PasswordHasher= new MockPasswordHasher();
         var store= new Mock<IUserStore<User>>();
 
@@ -188,7 +191,7 @@ namespace Tlabs.Identity.Intern.Test {
         svcProv.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IServiceScopeFactory)))).Returns(this.SvcScopeFactory);
         this.SvcProvider= svcProv.Object;
 
-        App.InternalInitSvcProv(this.SvcProvider);
+        App.Setup= App.Setup with { ServiceProv= this.SvcProvider };
 
         var options= new Mock<IOptions<SingletonApiKeyDataStoreRegistry.Options>>();
         options.Setup(o => o.Value).Returns(new SingletonApiKeyDataStoreRegistry.Options {
@@ -203,7 +206,7 @@ namespace Tlabs.Identity.Intern.Test {
       }
 
       public void Dispose() {
-        App.InternalInitSvcProv(null);
+        App.Setup= App.Setup with { ServiceProv= this.saveSvcProv };
       }
     }
 
