@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Net.WebSockets;
 
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
 using Tlabs.Misc;
@@ -20,23 +19,15 @@ namespace Tlabs.Msg.Intern.Test {
 
   [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
   public class WsMessengerTest : IClassFixture<WsMessengerTest.Fixture> {
+    static int fixtureSetupCnt= 0;
     public class Fixture : AbstractServiceProviderFactory {
       public Fixture() {
-
-        // var logFac= LoggerFactory.Create(log => {
-        //   log.AddConsole()
-        //    .AddConsoleFormatter<CustomStdoutFormatter, CustomStdoutFormatterOptions>()
-        //    .SetMinimumLevel(LogLevel.Information)
-        //    .AddFilter("Microsoft", LogLevel.Warning);
-        // });
-        // App.LogFactory= logFac;
-
-        this.svcColl.AddLogging();
+        if (++fixtureSetupCnt > 1) throw new InvalidOperationException($"fixtureSetupCnt: {fixtureSetupCnt}");
 
         this.svcColl.AddSingleton<IHostApplicationLifetime, TestAppLifetime>();
         new Tlabs.Data.Serialize.Json.JsonFormat.Configurator().AddTo(svcColl, Tlabs.Config.Empty.Configuration);
 
-        Xunit.Assert.NotNull(this.SvcProv);   //make sure the IServiceProvider gets initialized...
+        Assert.NotNull(this.SvcProv);   //make sure the IServiceProvider gets initialized...
       }
 
       sealed class TestAppLifetime : IHostApplicationLifetime, IDisposable {
@@ -64,6 +55,9 @@ namespace Tlabs.Msg.Intern.Test {
     public WsMessengerTest(Fixture tstCtx, ITestOutputHelper tstout) {
       this.tstCtx= tstCtx;
       this.tstout= tstout;
+
+      // tstout.WriteLine(DbgHelper.ProcInfo());
+      // Tlabs.Config.DbgHelper.HardBreak();
     }
 
     [Fact]
