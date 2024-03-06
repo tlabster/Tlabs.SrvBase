@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <VersionPrefix>2.1.11</VersionPrefix>
+    <VersionPrefix>2.1.12</VersionPrefix>
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <!--<RuntimeFrameworkVersion>6.0.1</RuntimeFrameworkVersion>-->
@@ -22,7 +22,7 @@
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
-    <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://bitbucket.org/tlabster/tlabs.srvbase</PackageProjectUrl>
   </PropertyGroup>
 
