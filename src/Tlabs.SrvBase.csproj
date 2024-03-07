@@ -13,9 +13,6 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisModeSecurity>All</AnalysisModeSecurity>
     <AnalysisModeNaming>None</AnalysisModeNaming>
-    <!--
-    <AnalysisLevel>6-recommended</AnalysisLevel>
-    -->
   </PropertyGroup>
 
   <PropertyGroup>

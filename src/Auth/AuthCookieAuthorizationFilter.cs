@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 using Tlabs.Config;
@@ -33,13 +35,16 @@ namespace Tlabs.Server.Auth {
     }
 
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         var log= App.Logger<Configurator>();
         svcColl.AddSingleton<AuthCookieAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(AuthCookieAuthorizationFilter));
       }
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
   }
 }

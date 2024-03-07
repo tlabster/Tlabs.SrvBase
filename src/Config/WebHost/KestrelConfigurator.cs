@@ -42,13 +42,13 @@ namespace Tlabs.Config {
       this.config= config ?? new Dictionary<string, string>();
     }
 
-    ///<summary>Adds the Kestrel configuration to the <paramref name="target"/>.</summary>
-    public void AddTo(IWebHostBuilder target, IConfiguration cfg) {
-      target.ConfigureServices(services => {
+    ///<summary>Adds the Kestrel configuration to the <paramref name="builder"/>.</summary>
+    public void AddTo(IWebHostBuilder builder, IConfiguration cfg) {
+      builder.ConfigureServices(services => {
         var optConfig= cfg.GetSection("options");
         services.Configure<KestrelServerOptions>(optConfig);
       });
-      target.UseKestrel(opt => {
+      builder.UseKestrel(opt => {
 #if BROKEN
         var optConfig= cfg.GetSection("options");
         opt.Configure(optConfig).Load();      //this does not work
@@ -63,7 +63,7 @@ namespace Tlabs.Config {
         }
       });
 
-      target.UseIISIntegration();
+      builder.UseIISIntegration();
     }
   }
 }

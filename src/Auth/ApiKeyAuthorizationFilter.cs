@@ -1,15 +1,16 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Authorization;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 using Tlabs.Config;
 
@@ -59,14 +60,16 @@ namespace Tlabs.Server.Auth {
       public string? masterKey { get; set; }
     }
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.Configure<Options>(cfg.GetSection("config"));
         svcColl.AddSingleton<ApiKeyAuthorizationFilter>();
         ApiKeyAuthorizationFilter.log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
       }
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
-
   }
 }

@@ -3,10 +3,12 @@ using System.Security.Claims;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 using Tlabs.Config;
@@ -83,7 +85,7 @@ namespace Tlabs.Server.Auth {
     }
 
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.Configure<Options>(cfg.GetSection("config"));
@@ -92,6 +94,9 @@ namespace Tlabs.Server.Auth {
         svcColl.AddSingleton<IApiKeyRegistry, Identity.Intern.SingletonApiKeyDataStoreRegistry>();
         log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
       }
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
   }
 }

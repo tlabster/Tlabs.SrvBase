@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HostFiltering;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Tlabs.Config;
 
@@ -102,6 +104,12 @@ namespace Tlabs.Server {
     ///<summary>Configure the application middleware (HTTP request pipeline).</summary>
     ///<remarks>This method gets called by the runtime after services have been configured with ConfigureServices().</remarks>
     public void Configure(IApplicationBuilder app) {
+      App.Setup= App.Setup with { ServiceProv= app.ApplicationServices };
+      App.AppLifetime.ApplicationStopped.Register(() => {
+        App.Logger<ApplicationStartup>().LogCritical("Shutdown.\n\n");
+        Serilog.Log.CloseAndFlush();
+      });
+
       app.UseHostFiltering(); // Should be first in the pipeline
       if (isForwardedHeaders) app.UseForwardedHeaders();
 
@@ -110,5 +118,6 @@ namespace Tlabs.Server {
         AppBuilder= app
       }.ApplyConfigurators(App.Settings, APP_MIDDLEWARE_SECTION);
     }
+
   }
 }

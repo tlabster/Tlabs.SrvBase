@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc.Filters;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 using Tlabs;
 using Tlabs.Config;
 using Tlabs.Data.Model;
@@ -76,11 +79,14 @@ namespace Tlabs.Server.Auth {
     }
 
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.AddSingleton<RoleDefaultParamsFilter>();
       }
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
   }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,8 @@ using Tlabs.Data.Serialize.Json;
 namespace Tlabs.Config {
 
   ///<summary>Configures MVC to <see cref="IServiceCollection"/>>.</summary>
-  public class MvcSvcConfigurator : IConfigurator<IServiceCollection> {
+  public class MvcSvcConfigurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
+    static readonly ILogger log= App.Logger<MvcSvcConfigurator>();
     readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
@@ -27,13 +28,14 @@ namespace Tlabs.Config {
     }
 
     ///<inheritdoc/>
-    public void AddTo(IServiceCollection services, IConfiguration cfg) {
-      var log= App.Logger<MvcSvcConfigurator>();
+    public void AddTo(IServiceCollection services, IConfiguration cfg) => configureMvcServices(services);
 
+    void configureMvcServices(IServiceCollection services) {
+      services.AddRouting();
       // Add ASP.NET MVC framework services.
       services.AddControllers(opt => {
         var filterKeys= config.Keys.Where(k => k.StartsWith("filter", StringComparison.Ordinal) || k.Contains("_filter", StringComparison.Ordinal)).OrderBy(k => k);
-        foreach(var filter in filterKeys) {
+        foreach (var filter in filterKeys) {
           var typeName= config[filter];
           if (!string.IsNullOrEmpty(typeName)) {
             opt.Filters.AddService(Misc.Safe.LoadType(typeName, filter));
@@ -45,6 +47,9 @@ namespace Tlabs.Config {
 
       log.LogInformation("ASP.NET MVC framework services added.");
     }
+    ///<inheritdoc/>
+    public void AddTo(IWebHostBuilder webHostBuilder, IConfiguration cfg) =>
+      webHostBuilder.ConfigureServices(services => configureMvcServices(services));
 
     private void configureJsonOptions(JsonOptions opt) {
       JsonFormat.ApplyDefaultOptions(opt.JsonSerializerOptions);
