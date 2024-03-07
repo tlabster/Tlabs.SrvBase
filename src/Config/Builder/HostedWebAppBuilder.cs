@@ -24,14 +24,17 @@ namespace Tlabs.Config {
   /// <summary>Factory of an (hosted) <see cref="WebApplication"/> builder.</summary>
   public sealed class HostedWebAppBuilder : BaseHostedAppBuilder, IHostedWebAppBuilder {
     class WebAppBuilderFactory : IHostedBuilderFactory {
-      public IHostApplicationBuilder Create(IConfigurationSection hostConfig, string[]? args)
-        => WebApplication.CreateEmptyBuilder(new() {
+      public IHostApplicationBuilder Create(IConfigurationSection hostConfig, string[]? args) {
+        var builder= WebApplication.CreateEmptyBuilder(new() {
           ContentRootPath= App.ContentRoot,
           ApplicationName= App.Setup.Name,
           EnvironmentName= App.Setup.EnvironmentName,
           Args= args,
           WebRootPath= hostConfig[WebHostDefaults.WebRootKey]
         });
+        builder.Configuration.AddConfiguration(hostConfig);
+        return builder;
+      }
     }
 
     internal const string DFLT_WEBHOST_SECTION= "webHosting";
