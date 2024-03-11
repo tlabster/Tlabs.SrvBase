@@ -19,6 +19,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures debug pages middleware.</summary>
   public class DebugPagesConfigurator : IConfigurator<MiddlewareContext> {
+    readonly ILogger log= Tlabs.App.Logger<DebugPagesConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
@@ -26,6 +27,7 @@ namespace Tlabs.Config {
         mware.AppBuilder.UseDeveloperExceptionPage();  //see https://docs.microsoft.com/en-us/aspnet/core/fundamentals/error-handling
         //mware.AppBuilder.UseDatabaseErrorPage(); //from Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
         //mware.AppBuilder.UseBrowserLink(); //see http://vswebessentials.com/features/browserlink
+        log.LogInformation("Debug exception page configured");
       }
     }
   }
