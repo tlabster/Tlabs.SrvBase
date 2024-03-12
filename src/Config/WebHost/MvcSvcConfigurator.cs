@@ -45,6 +45,15 @@ namespace Tlabs.Config {
       }).AddJsonOptions(configureJsonOptions)
         .AddApplicationPart(Assembly.GetEntryAssembly()!);
 
+
+      /* Global JSON serializer options:
+       */
+      services.ConfigureHttpJsonOptions(opt => {
+        JsonFormat.ApplyDefaultOptions(opt.SerializerOptions);
+        if (config.TryGetValue("formatting", out var frmt))
+          opt.SerializerOptions.WriteIndented= frmt.Equals("Indented", StringComparison.OrdinalIgnoreCase);
+      });
+
       log.LogInformation("ASP.NET MVC framework services added.");
     }
     ///<inheritdoc/>

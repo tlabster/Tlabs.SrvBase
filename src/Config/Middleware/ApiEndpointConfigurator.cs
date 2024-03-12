@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
+using System.Linq;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Linq.Expressions;
 
 using Tlabs.Dynamic;
 
@@ -49,10 +48,9 @@ namespace Tlabs.Config {
       if (null == epDesc.action) throw new AppConfigException("No API end-point action");
 
       var handlerType= typeof(T);
-      var staticHandlerType= handlerType.IsAbstract && handlerType.IsSealed;
-      if (!staticHandlerType) throw new NotSupportedException($"Only static API end-point handler ({handlerType.Name}) supported");
-      var actionMethod= handlerType.GetMethod(epDesc.action) ?? throw new AppConfigException($"No (static) '{epDesc.action}' action method found in {handlerType.Name}");
-      //, BindingFlags.Static
+      // var staticHandlerType= handlerType.IsAbstract && handlerType.IsSealed;
+      // if (!staticHandlerType) throw new NotSupportedException($"Only static API end-point handler ({handlerType.Name}) supported");
+      var actionMethod= handlerType.GetMethod(epDesc.action, BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static) ?? throw new AppConfigException($"No (static) '{epDesc.action}' action method found in {handlerType.Name}");
 
       /* NOTE to support non static action-methods:
        * This would require to dynamically create a expression lamda delegate of the form:

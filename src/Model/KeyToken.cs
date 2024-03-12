@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tlabs.Data.Entity;
+
 namespace Tlabs.Server.Model {
   ///<summary>Model class for the API Key</summary>
   public class KeyToken {
