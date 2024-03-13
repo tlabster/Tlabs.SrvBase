@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+
+using Microsoft.AspNetCore.Http;
 
 using Tlabs.Data.Model;
 using Tlabs.Data.Serialize.Json;
@@ -31,11 +35,27 @@ namespace Tlabs.Server.Model {
       set => lim= value;
     }
 
+    /// <summary>Support custom binding.</summary>
+    public static ValueTask<PagingParam?> BindAsync(HttpContext httpCtx) {
+      PagingParam? pagingParam= null;
+      pagingParam= new() {
+        limit=   int.TryParse(httpCtx.Request.Query[nameof(pagingParam.limit)], App.DfltFormat, out var limit)
+               ? limit
+               : null,
+        page=    int.TryParse(httpCtx.Request.Query[nameof(pagingParam.page)], App.DfltFormat, out var page)
+               ? page
+               : null,
+        start=   int.TryParse(httpCtx.Request.Query[nameof(pagingParam.start)], App.DfltFormat, out var start)
+               ? start
+               : null,
+      };
+      return ValueTask.FromResult<PagingParam?>(pagingParam);
+    }
   }
 
   ///<summary>Filter parameter model to be bound via MVC model binding.</summary>
   ///<remarks>This filter parameter model is aimed to bind a request like:
-  /// <code>api/sampleTypes?_dc=1020304050607&amp;start=0&amp;limit=25&amp;filter=[{"isFormFilter":true,"anyMatch":true,"disableOnEmpty":true,"property":"lastname","value":"aal","operator":"like"}]</code>
+  /// <code>api/sampleTypes?_dc=1020304050607&amp;start=0&amp;limit=25&amp;filter=[{"property":"lastname","value":"aal"}]</code>
   ///<para>See MVC model binding: https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding</para>
   /// NOTE:<para>
   /// Unfortunately MVC's model binding requires that the class must have a public default constructor and thus does not support injecting dependencies through DI...<br/>
@@ -83,6 +103,24 @@ namespace Tlabs.Server.Model {
         SortAscBy= this.SorterList?.ToDictionary(s => s.property ?? "?", s => s.IsAscSort())!
       };
 
+    /// <summary>Support custom binding.</summary>
+    public static new ValueTask<FilterParam<TEntity>?> BindAsync(HttpContext httpCtx) {
+      FilterParam<TEntity>? filterParam= null;
+
+      var pgValTsk= PagingParam.BindAsync(httpCtx);
+      if (pgValTsk.IsCompleted) {
+        var pagingParam= pgValTsk.Result ?? new();
+
+        filterParam= new() {
+          limit= pagingParam.limit,
+          page=  pagingParam.page,
+          start= pagingParam.start,
+          filter= httpCtx.Request.Query[nameof(filterParam.filter)],
+          sort=   httpCtx.Request.Query[nameof(filterParam.sort)]
+        };
+      }
+      return ValueTask.FromResult<FilterParam<TEntity>?>(filterParam);
+    }
   }
 
   ///<summary>Filter descriptor.</summary>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -12,6 +13,16 @@ namespace Tlabs.Config {
     public required IWebHostEnvironment HostingEnv { get; set; }
     ///<summary>Application builder to be configured.</summary>
     public required IApplicationBuilder AppBuilder { get; set; }
+  }
+
+  ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
+  public static class MiddlewareContextExt {
+    ///<summary>Returns a <see cref="WebApplication"/>.</summary>
+    public static WebApplication AsWebApplication(this MiddlewareContext ctx) => (WebApplication)ctx.AppBuilder;
+    ///<summary>Returns a <see cref="IEndpointRouteBuilder"/>.</summary>
+    public static IEndpointRouteBuilder AsEndpointBuilder(this MiddlewareContext ctx) => (IEndpointRouteBuilder)ctx.AppBuilder;
+    ///<summary>Returns a <see cref="IHost"/>.</summary>
+    public static IHost AsHost(this MiddlewareContext ctx) => (IHost)ctx.AppBuilder;
   }
 
   ///<summary>Configurator to add additional assembly path(s).</summary>
