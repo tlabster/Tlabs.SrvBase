@@ -19,8 +19,9 @@ namespace Tlabs.Server.Url {
 
     ///<inheritdoc/>>
     public void OnActionExecuting(ActionExecutingContext ctx) {
-      foreach(var param in ctx.ActionDescriptor.Parameters.Where(p =>    BindingSource.Path == p.BindingInfo?.BindingSource
-                                                                      && typeof(string) == p.ParameterType)) {
+      foreach(var param in ctx.ActionDescriptor.Parameters.Where(p => BindingSource.Path == p.BindingInfo?.BindingSource
+                                                                        && typeof(string) == p.ParameterType
+                                                                        && ctx.ActionArguments.ContainsKey(p.Name))) {
         var val= ctx.ActionArguments[param.Name] as string;
         if (!string.IsNullOrEmpty(val)) {
           ctx.ActionArguments[param.Name]= val.Replace(SLASH_ENC, SLASH_DEC, System.StringComparison.OrdinalIgnoreCase);
