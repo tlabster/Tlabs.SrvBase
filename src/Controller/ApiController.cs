@@ -18,7 +18,7 @@ namespace Tlabs.Server.Controller {
     public string ActionRoute => $"{ControllerContext.ActionDescriptor?.ControllerName}/{ControllerContext.ActionDescriptor?.ActionName}";
 
     ///<summary>Resolve API error from exception.</summary>
-    protected virtual string resolveError(Exception e, string msg0= null) {
+    protected virtual string resolveError(Exception e, string? msg0= null) {
       e.Source= ActionRoute;
       // var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
@@ -37,7 +37,7 @@ namespace Tlabs.Server.Controller {
 
         case ArgumentOutOfRangeException re:
           code= StatusCodes.Status400BadRequest;
-          msg??= re.SetMissingTemplateData("Value ({actualValue}) for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
+          msg??= re.SetMissingTemplateData("Value ({actualValue}) out of valid range for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
         break;
 
         case ArgumentException ae:
@@ -50,7 +50,7 @@ namespace Tlabs.Server.Controller {
           msg??= kn.Message;
         break;
 
-        case InvalidOperationException io:
+        case InvalidOperationException io when io.Message.EndsWith("contains no elements"):
           code= StatusCodes.Status404NotFound;
           msg??= io.Message;
         break;

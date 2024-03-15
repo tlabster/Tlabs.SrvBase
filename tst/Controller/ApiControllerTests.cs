@@ -1,9 +1,7 @@
 ﻿using System;
 using Microsoft.AspNetCore.Http;
 
-
 using Xunit;
-using Xunit.Abstractions;
 
 
 namespace Tlabs.Server.Controller.Test {
@@ -20,7 +18,7 @@ namespace Tlabs.Server.Controller.Test {
       Assert.Contains("missing", cntrl.ResolvedMsg);
       Assert.Equal(StatusCodes.Status400BadRequest, cntrl.ResolvedCode);
 
-      cntrl= new TestApiCtrl(new GeneralException("Test MSG", new InvalidOperationException("invalid msg")));
+      cntrl= new TestApiCtrl(new GeneralException("Test MSG", new InvalidOperationException("invalid msg contains no elements")));
       Assert.Equal("Test MSG", cntrl.ResolvedMsg);
       Assert.Equal(StatusCodes.Status404NotFound, cntrl.ResolvedCode);
 

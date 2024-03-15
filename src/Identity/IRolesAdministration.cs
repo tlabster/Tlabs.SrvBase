@@ -11,8 +11,8 @@ namespace Tlabs.Identity {
     IQueryable<Role> FilteredRoles(QueryFilter filter);
 
     ///<summary>List of <see cref="User"/>(s) matching optional <paramref name="filterName"/>.</summary>
-    IList<Role> FilteredList(string filterName= null);
-    
+    IList<Role> FilteredList(string? filterName= null);
+
     ///<summary>Return role by <paramref name="name"/>.</summary>
     Role GetByName(string name);
 

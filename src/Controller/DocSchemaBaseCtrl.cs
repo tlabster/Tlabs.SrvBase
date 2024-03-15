@@ -29,7 +29,7 @@ namespace Tlabs.Server.Controller {
 
     ///<summary>POST upload action with <paramref name="xml_file"/>, <paramref name="html_file"/> and <paramref name="css_file"/>.</summary>
     //[POST] api/DocSchema/upload
-    protected void UploadIntern(IFormFile html_file, IFormFile xml_file= null, IFormFile css_file= null, IFormFile xls_file= null) {
+    protected void UploadIntern(IFormFile html_file, IFormFile xml_file, IFormFile? css_file= null, IFormFile? xls_file= null) {
       var req= this.Request;
       var resp= this.Response;
       if (!req.HasFormContentType) {
@@ -54,7 +54,7 @@ namespace Tlabs.Server.Controller {
     }
 
     ///<summary>Create a <see cref="SchemaDefinitionStreams"/> from <see cref="IFormFile"/>(s).</summary>
-    public static SchemaDefinitionStreams CreateSchemaDefStreams(IFormFile xml_file, IFormFile html_file= null, IFormFile css_file= null, IFormFile xls_file= null) {
+    public static SchemaDefinitionStreams CreateSchemaDefStreams(IFormFile xml_file, IFormFile? html_file= null, IFormFile? css_file= null, IFormFile? xls_file= null) {
       var defStreams= new SchemaDefinitionStreams {
         Schema= xml_file.OpenReadStream(),
         CalcModel= xls_file?.OpenReadStream(),
@@ -64,7 +64,7 @@ namespace Tlabs.Server.Controller {
 
       if (null != defStreams.CalcModel) {
         //check for possible base64 encoding
-        if (xls_file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(xls_file?.Headers["Content-Transfer-Encoding"].ToString(), "base64", StringComparison.OrdinalIgnoreCase))
           using (var rd = new StreamReader(defStreams.CalcModel))
             defStreams.CalcModel= new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
       }
@@ -83,7 +83,7 @@ namespace Tlabs.Server.Controller {
     protected void FormIntern(string typeId, string form, Func<string, Stream> formDataStream, Func<string, Stream> styleDataStream) {
       var resp= this.Response;
       try {
-        if (STYLE_DATA == typeId.ToLowerInvariant()) {
+        if (STYLE_DATA.Equals(typeId, StringComparison.OrdinalIgnoreCase)) {
           typeId= form;
           resp.ContentType= "text/css; charset=utf-8";
           styleDataStream(typeId).CopyTo(resp.Body);
@@ -107,7 +107,7 @@ namespace Tlabs.Server.Controller {
     protected void FormIntern(string typeId, string form, Func<string, SchemaDefinitionStreams.Data, Stream> schemaStream) {
       var resp= this.Response;
       try {
-        if (STYLE_DATA == typeId.ToLowerInvariant()) {
+        if (STYLE_DATA.Equals(typeId, StringComparison.OrdinalIgnoreCase)) {
           typeId= form;
           resp.ContentType= "text/css; charset=utf-8";
           schemaStream(typeId, SchemaDefinitionStreams.Data.Style).CopyTo(resp.Body);

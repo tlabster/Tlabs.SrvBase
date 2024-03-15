@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 using Tlabs.Config;
@@ -30,11 +31,15 @@ namespace Tlabs.Server.Url {
     }
 
     ///<inheritdoc/>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.AddSingleton(new RouteParamDecodeFilter());
       }
+
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
   }
 }

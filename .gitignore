@@ -233,4 +233,7 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 
-tst/coverage.json
+# temporary or generated
+__*
+#Coverage
+tst/**/coverage.json

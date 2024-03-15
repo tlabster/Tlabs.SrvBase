@@ -1,29 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <VersionPrefix>2.1.13</VersionPrefix>
-    <TargetFramework>net6.0</TargetFramework>
+    <VersionPrefix>2.2.1</VersionPrefix>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Library</OutputType>
-    <!--<RuntimeFrameworkVersion>6.0.1</RuntimeFrameworkVersion>-->
+    <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <Description>The base foundation of a Tlabs web-application server.</Description>
     <Authors>Tlabs</Authors>
 
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>6</AnalysisLevel>
-    <AnalysisMode>Recommended</AnalysisMode>
     <AnalysisModeSecurity>All</AnalysisModeSecurity>
     <AnalysisModeNaming>None</AnalysisModeNaming>
-    <!--
-    <AnalysisLevel>6-recommended</AnalysisLevel>
-    -->
   </PropertyGroup>
 
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/tlabster/tlabs.srvbase</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,9 +29,11 @@
 
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="6.0.*" />
-    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="6.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="8.0.*" />
+
+    <None Include="../README.md" Pack="true" PackagePath=""/>
   </ItemGroup>
 
 </Project>

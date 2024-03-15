@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Tlabs.Data;
 using Tlabs.Data.Entity;
-using Tlabs.Misc;
 using Tlabs.Server.Model;
 using Xunit;
 
@@ -18,11 +16,12 @@ namespace Tlabs.Identity.Intern.Test {
 
   [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
   public class DefaultApiKeyRegistryTests : IClassFixture<DefaultApiKeyRegistryTests.Fixture> {
-    public class MockPasswordHasher : IPasswordHasher<User> {
-      public string HashPassword(User user, string password) => password;
+    public class MockPasswordHasher : IPasswordHasher<string> {
+      public string HashPassword(string user, string password) => $"{user}/{password}";
 
-      public PasswordVerificationResult VerifyHashedPassword(User user, string hashedPassword, string providedPassword) {
-        return hashedPassword == providedPassword ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
+      public PasswordVerificationResult VerifyHashedPassword(string user, string hashedPassword, string providedPassword) {
+        var hash= hashedPassword.Split('/');
+        return user == hash[0] && hash[1] ==  providedPassword ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
       }
     }
     public class Fixture : IDisposable {
@@ -30,13 +29,16 @@ namespace Tlabs.Identity.Intern.Test {
       public IApiKeyRegistry ApiKeyRegistry { get; }
       public IRepo<ApiKey> ApiKeyRepo { get; }
       public IList<ApiKey> DataStore { get; }
-      public IPasswordHasher<User> PasswordHasher { get; }
+      public IPasswordHasher<string> PasswordHasher { get; }
       public IServiceProvider SvcProvider { get; }
       public IServiceProvider SvcProviderScope { get; set; }
       public IServiceScope SvcScope { get; }
       public IServiceScopeFactory SvcScopeFactory { get; }
       public IOptions<SingletonApiKeyDataStoreRegistry.Options> Options { get; }
+      IServiceProvider saveSvcProv;
+
       public Fixture() {
+        this.saveSvcProv= App.ServiceProv;
         this.PasswordHasher= new MockPasswordHasher();
         var store= new Mock<IUserStore<User>>();
 
@@ -49,7 +51,7 @@ namespace Tlabs.Identity.Intern.Test {
         var k= new ApiKey {
           Id= 1,
           TokenName= "ValidToken1",
-          Hash= "ValidToken1",
+          Hash= "ValidToken1/Valid1",
           Description= "Valid Token 1",
           ValidFrom= default(DateTime),
           ValidUntil= null,
@@ -67,7 +69,7 @@ namespace Tlabs.Identity.Intern.Test {
         k= new ApiKey {
           Id= 2,
           TokenName= "ValidToken2",
-          Hash= "ValidToken2",
+          Hash= "ValidToken2/Valid2",
           Description= "Valid Token 2",
           ValidFrom= default(DateTime),
           ValidUntil= App.TimeInfo.Now.Date.AddMonths(1),
@@ -84,7 +86,7 @@ namespace Tlabs.Identity.Intern.Test {
         k= new ApiKey {
           Id= 3,
           TokenName= "ExpiredToken1",
-          Hash= "ExpiredToken1",
+          Hash= "ExpiredToken1/Expired1",
           Description= "Expired Token 1",
           ValidFrom= default(DateTime),
           ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
@@ -101,7 +103,7 @@ namespace Tlabs.Identity.Intern.Test {
         k= new ApiKey {
           Id= 4,
           TokenName= "NotYetValidToken1",
-          Hash= "NotYetValidToken1",
+          Hash= "NotYetValidToken1/NotYetValid1",
           Description= "Not Yet Valid Token 1",
           ValidFrom= App.TimeInfo.Now.Date.AddMonths(1),
           ValidUntil= null,
@@ -118,7 +120,7 @@ namespace Tlabs.Identity.Intern.Test {
         k= new ApiKey {
           Id= 5,
           TokenName= "DeletedToken1",
-          Hash= "DeletedToken1",
+          Hash= "DeletedToken1/Deleted1",
           Description= "Deleted Token 1",
           ValidFrom= default(DateTime),
           ValidUntil= null,
@@ -135,7 +137,7 @@ namespace Tlabs.Identity.Intern.Test {
         k= new ApiKey {
           Id= 6,
           TokenName= "DeletedToken2",
-          Hash= "DeletedToken2",
+          Hash= "DeletedToken2/Deleted2",
           Description= "Deleted Token 2",
           ValidFrom= default(DateTime),
           ValidUntil= App.TimeInfo.Now.Date.AddMonths(-1),
@@ -173,7 +175,7 @@ namespace Tlabs.Identity.Intern.Test {
         this.ApiKeyRepo= apiKeyRepoMock.Object;
 
         var svcProvScp= new Mock<IServiceProvider>();
-        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IPasswordHasher<User>)))).Returns(this.PasswordHasher);
+        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IPasswordHasher<string>)))).Returns(this.PasswordHasher);
         svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IRepo<ApiKey>)))).Returns(this.ApiKeyRepo);
         this.SvcProviderScope= svcProvScp.Object;
 
@@ -189,7 +191,7 @@ namespace Tlabs.Identity.Intern.Test {
         svcProv.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IServiceScopeFactory)))).Returns(this.SvcScopeFactory);
         this.SvcProvider= svcProv.Object;
 
-        App.InternalInitSvcProv(this.SvcProvider);
+        App.Setup= App.Setup with { ServiceProv= this.SvcProvider };
 
         var options= new Mock<IOptions<SingletonApiKeyDataStoreRegistry.Options>>();
         options.Setup(o => o.Value).Returns(new SingletonApiKeyDataStoreRegistry.Options {
@@ -204,7 +206,7 @@ namespace Tlabs.Identity.Intern.Test {
       }
 
       public void Dispose() {
-        App.InternalInitSvcProv(null);
+        App.Setup= App.Setup with { ServiceProv= this.saveSvcProv };
       }
     }
 
@@ -224,35 +226,35 @@ namespace Tlabs.Identity.Intern.Test {
     [Fact]
     public void TestVerifyKey() {
       //First attempt should be non-cached, second should be cached
-      var key1= registry.VerifiedKey("ValidToken1");
+      var key1= registry.VerifiedKey("Valid1");
       Assert.NotNull(key1);
       Assert.True(key1.TokenName == "ValidToken1");
-      key1= registry.VerifiedKey("ValidToken1");
+      key1= registry.VerifiedKey("Valid1");
       Assert.NotNull(key1);
       Assert.True(key1.TokenName == "ValidToken1");
 
-      var key2= registry.VerifiedKey("ValidToken2");
+      var key2= registry.VerifiedKey("Valid2");
       Assert.NotNull(key2);
       Assert.True(key2.TokenName == "ValidToken2");
-      key2= registry.VerifiedKey("ValidToken2");
+      key2= registry.VerifiedKey("Valid2");
       Assert.NotNull(key2);
       Assert.True(key2.TokenName == "ValidToken2");
       //reset valid until in cached object to before, in data store it will still be correct
       key2.ValidUntil= App.TimeInfo.Now.AddMonths(-1);
-      key2= registry.VerifiedKey("ValidToken2");
+      key2= registry.VerifiedKey("Valid2");
       Assert.NotNull(key2);
       Assert.True(key2.TokenName == "ValidToken2");
 
-      var key3= registry.VerifiedKey("ExpiredToken1");
+      var key3= registry.VerifiedKey("Expired1");
       Assert.Null(key3);
 
-      var key4= registry.VerifiedKey("NotYetValidToken1");
+      var key4= registry.VerifiedKey("NotYetValid1");
       Assert.Null(key4);
 
-      var key5= registry.VerifiedKey("DeletedToken1");
+      var key5= registry.VerifiedKey("Deleted1");
       Assert.Null(key5);
 
-      var key6= registry.VerifiedKey("DeletedToken2");
+      var key6= registry.VerifiedKey("Deleted2");
       Assert.Null(key6);
     }
 

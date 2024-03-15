@@ -9,7 +9,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for a single model object being provided from async delegate.</summary>
   public class AsyncModelCover<T> : ModelCover<T>, IActionResult {
     readonly Task<T> resTask;
-    readonly Func<Exception, string> provideErrMessage;
+    readonly Func<Exception, string>? provideErrMessage;
 
     ///<summary>Ctor from async <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
@@ -23,7 +23,7 @@ namespace Tlabs.Server.Model {
     ///}
     ///</code>
     ///</remarks>
-    public AsyncModelCover(Func<ModelCover<T>, Task<T>> provideModel, Func<Exception, string> provideErrMessage = null) {
+    public AsyncModelCover(Func<ModelCover<T>, Task<T>> provideModel, Func<Exception, string>? provideErrMessage= null) {
       this.resTask= provideModel(this);   //start task
       this.provideErrMessage= provideErrMessage;
     }
@@ -41,9 +41,9 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for the result of a data query returning an <see cref="IEnumerable{T}"/>.</summary>
   public class AsyncQueryCover<T> : QueryCover<T>, IActionResult {
     readonly Task<IEnumerable<T>> resTask;
-    readonly Func<Exception, string> provideErrMessage;
+    readonly Func<Exception, string>? provideErrMessage;
     ///<summary>Ctor from async <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public AsyncQueryCover(Func<QueryCover<T>, Task<IEnumerable<T>>> queryResult, Func<Exception, string> provideErrMessage = null) {
+    public AsyncQueryCover(Func<QueryCover<T>, Task<IEnumerable<T>>> queryResult, Func<Exception, string>? provideErrMessage= null) {
       this.resTask= queryResult(this);
       this.provideErrMessage= provideErrMessage;
     }

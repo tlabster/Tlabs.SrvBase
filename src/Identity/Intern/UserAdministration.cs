@@ -31,6 +31,7 @@ namespace Tlabs.Identity.Intern {
     readonly IdentityOptions identOptions;
 
     static readonly ILogger<UserAdministration> log= Tlabs.App.Logger<UserAdministration>();
+#nullable disable
     static readonly IDictionary<string, QueryFilter.FilterExpression<Data.Entity.User>> userFilterMap= new Dictionary<string, QueryFilter.FilterExpression<Data.Entity.User>>(StringComparer.OrdinalIgnoreCase) {
       [nameof(Data.Entity.User.UserName)]= (q, cv) => q.Where(u => u.UserName.StartsWith(cv.ToString())),
       [nameof(Data.Entity.User.Email)]= (q, cv) => q.Where(u => u.Email.StartsWith(cv.ToString())),
@@ -46,28 +47,29 @@ namespace Tlabs.Identity.Intern {
       [nameof(Data.Entity.User.Status)]= (q, isAsc) => isAsc ? q.OrderBy(u => u.Status) : q.OrderByDescending(u => u.Status)
     };
 
+    private IQueryable<Data.Entity.User> loadUser(IQueryable<Data.Entity.User> query)
+      => query.LoadRelated(store, u => u.Locale)
+              .LoadRelated(store, u => u.Roles)
+              .ThenLoadRelated(store, r => r.Role);
+#nullable restore
+
     ///<summary>Ctor from .</summary>
     public UserAdministration(IHttpContextAccessor httpCtxAcc,
                               UserManager<Data.Entity.User> userManager,
                               SignInManager<Data.Entity.User> signInManager,
                               ICachedRepo<Tlabs.Data.Entity.Locale> locRepo,
                               IOptions<IdentityOptions> identOpt) {
-      if (null == (this.httpCtx= httpCtxAcc?.HttpContext)) throw new ArgumentNullException(nameof(httpCtxAcc));
+      if (null == (this.httpCtx= httpCtxAcc?.HttpContext!)) throw new ArgumentNullException(nameof(httpCtxAcc));
       if (null == (this.userManager= userManager)) throw new ArgumentNullException(nameof(userManager));
       if (null == (this.signInManager= signInManager)) throw new ArgumentNullException(nameof(signInManager));
       this.norm= userManager.KeyNormalizer ?? new DefaultNormalizer();
       if (null == (this.locRepo= locRepo)) throw new ArgumentNullException(nameof(locRepo));
       this.store= locRepo.Store;
-      if (null == (this.identOptions= identOpt?.Value)) throw new ArgumentNullException(nameof(identOpt));
+      if (null == (this.identOptions= identOpt?.Value!)) throw new ArgumentNullException(nameof(identOpt));
     }
 
-    private IQueryable<Data.Entity.User> loadUser(IQueryable<Data.Entity.User> query)
-      => query.LoadRelated(store, u => u.Locale)
-              .LoadRelated(store, u => u.Roles)
-              .ThenLoadRelated(store, r => r.Role);
-
     ///<inheritdoc/>
-    public IResultList<Data.Model.User> FilteredList(QueryFilter filter= null) {
+    public IResultList<Data.Model.User> FilteredList(QueryFilter? filter= null) {
       filter??= new QueryFilter();
 
       var query= loadUser(filter.Apply(userManager.Users, userFilterMap, userSorterMap));
@@ -81,7 +83,7 @@ namespace Tlabs.Identity.Intern {
     Data.Entity.User getByName(string userName)
       => loadUser(userManager.Users).SingleEntity(u => u.NormalizedUserName == norm.NormalizeName(userName), userName);
 
-    Data.Entity.User tryGetByName(string userName)
+    Data.Entity.User? tryGetByName(string userName)
       => loadUser(userManager.Users).SingleOrDefault(u => u.NormalizedUserName == norm.NormalizeName(userName)); //entity or null
 
     ///<inheritdoc/>
@@ -92,7 +94,7 @@ namespace Tlabs.Identity.Intern {
     public Data.Model.User GetLoggedIn(ClaimsPrincipal principal) {
       /* Any currently logged-in user has its name set with the principal's Identity:
        */
-      Data.Entity.User usr= null;
+      Data.Entity.User? usr= null;
       var userName= principal?.Identity?.Name;
       if (! string.IsNullOrEmpty(userName) && null != (usr= tryGetByName(userName)))
         return new Data.Model.User(usr);      //return user with role information
@@ -108,7 +110,9 @@ namespace Tlabs.Identity.Intern {
 
     ///<inheritdoc/>
     public void Create(Data.Model.User user) {
+      ArgumentNullException.ThrowIfNull(user.Password);
       var entUsr= user.AsEntity(locRepo);
+      ArgumentNullException.ThrowIfNull(entUsr.UserName);
       assignRoles(entUsr, user.RoleIds);
       throwOnIdentiyError(
         userManager.CreateAsync(entUsr, user.Password).GetAwaiter().GetResult(),
@@ -119,7 +123,9 @@ namespace Tlabs.Identity.Intern {
 
     ///<inheritdoc/>
     public void Update(Data.Model.User user) {
+      ArgumentNullException.ThrowIfNull(user.Username);
       var entUsr= user.CopyTo(getByName(user.Username), locRepo);   //copy/merge to entity
+      ArgumentNullException.ThrowIfNull(entUsr.UserName);
       if (! string.IsNullOrEmpty(user.Password)) {
         var token= userManager.GeneratePasswordResetTokenAsync(entUsr).GetAwaiter().GetResult();
         throwOnIdentiyError(
@@ -137,13 +143,13 @@ namespace Tlabs.Identity.Intern {
       log.LogInformation("Updated user account: {usr}", entUsr.UserName);
     }
 
-    void assignRoles(Data.Entity.User usrEnt, IEnumerable<string> usrRoles) {
+    void assignRoles(Data.Entity.User usrEnt, IEnumerable<string>? usrRoles) {
       if(usrRoles == null)
         return;
 
       var existingRefs= store.Query<Data.Entity.User.RoleRef>()
-                             .Where(@ref => @ref.User.UserName == usrEnt.UserName);
-      var currentNames= existingRefs.Select(x => x.Role.Name)
+                             .Where(@ref => @ref.User!.UserName == usrEnt.UserName);
+      var currentNames= existingRefs.Select(x => x.Role!.Name)
                                     .ToList();
 
       var toInsert= usrRoles.Where(r => !currentNames.Contains(r));
@@ -158,17 +164,18 @@ namespace Tlabs.Identity.Intern {
       }
 
       var toRemove= currentNames.Where(n => !usrRoles.Contains(n));
-      foreach (var roleRef in existingRefs.Where(x => toRemove.Contains(x.Role.Name))) {
+      foreach (var roleRef in existingRefs.Where(x => toRemove.Contains(x.Role!.Name))) {
         store.Delete<Data.Entity.User.RoleRef>(roleRef);
       }
     }
 
     ///<inheritdoc/>
     public void Delete(string userName) {
-      var entUsr= userManager.FindByNameAsync(userName).GetAwaiter().GetResult();
+      var entUsr= userManager.FindByNameAsync(userName).AwaitWithTimeout(3000);
+      if (null == entUsr) return;
       throwOnIdentiyError(
-        userManager.DeleteAsync(entUsr).GetAwaiter().GetResult(),
-        "Failed to delete user '{name}'", entUsr.UserName
+        userManager.DeleteAsync(entUsr).AwaitWithTimeout(3000),
+        "Failed to delete user '{name}'", entUsr.UserName??"?"
       );
       log.LogInformation("Deleted user account: {usr}", entUsr.UserName);
     }
@@ -179,7 +186,7 @@ namespace Tlabs.Identity.Intern {
 
       if (string.IsNullOrEmpty(pwd)) throw new ArgumentNullException(nameof(pwd));
       if (LoginResult.SUCCESS != (res= userCanLogin(userName, out var user))) return res;
-
+      if (null == user) return LoginResult.FAILED;
 
       if (! (await signInManager.CheckPasswordSignInAsync(user, pwd, false)).Succeeded) {
         var failed= failedLogins[userName, () => new FailedLogin()].Increment();
@@ -205,7 +212,7 @@ namespace Tlabs.Identity.Intern {
       return LoginResult.SUCCESS;
     }
 
-    private LoginResult userCanLogin(string userName, out Data.Entity.User user) {
+    private LoginResult userCanLogin(string userName, out Data.Entity.User? user) {
       user= null;
       if (string.IsNullOrEmpty(userName)) throw new ArgumentNullException(nameof(userName));
       if (true == failedLogins[userName]?.IsLockedOut()) return LoginResult.LOCKED_OFF;
@@ -226,6 +233,7 @@ namespace Tlabs.Identity.Intern {
     }
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051:Remove unused private member", Justification = "Might be needed in future")]
     static ClaimsPrincipal createPreliminaryIdentity(Data.Entity.User user, string msgId) {
+      if (null == user.UserName) throw new InvalidOperationException("No user name");
       var ident= new ClaimsIdentity(IdentityConstants.TwoFactorUserIdScheme);
       ident.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
       ident.AddClaim(new Claim(ClaimTypes.Sid, msgId));
@@ -234,8 +242,10 @@ namespace Tlabs.Identity.Intern {
     }
 
     private ClaimsPrincipal createLoginIdentity(Data.Entity.User user) {
-      var userId= userManager.GetUserIdAsync(user).GetAwaiter().GetResult();
-      var userName= userManager.GetUserNameAsync(user).GetAwaiter().GetResult();
+      var userId= userManager.GetUserIdAsync(user).AwaitWithTimeout(3000);
+      var userName= userManager.GetUserNameAsync(user).AwaitWithTimeout(3000);
+      if (null == userName) throw EX.New<InvalidOperationException>("No user {user}", user.UserName??"");
+
       var roles= userManager.GetRolesAsync(user).GetAwaiter().GetResult();
       var ident= new ClaimsIdentity(IdentityConstants.ApplicationScheme,
                                     identOptions.ClaimsIdentity.UserNameClaimType,
@@ -253,6 +263,7 @@ namespace Tlabs.Identity.Intern {
 
       if (string.IsNullOrEmpty(token)) throw new ArgumentNullException(nameof(token));
       if (LoginResult.SUCCESS != (res= userCanLogin(userName, out var user))) return res;
+      if (null == user) return LoginResult.FAILED;
 
       if (! await isValidSecondFactor(user, token)) return LoginResult.FAILED;
 
@@ -295,7 +306,7 @@ namespace Tlabs.Identity.Intern {
     public void LogoffCurrent() {
       var currUser= httpCtx.User;
       if (null == currUser) return;
-      var usrName= currUser.Identity.Name;
+      var usrName= currUser.Identity?.Name;
       httpCtx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme)
              .GetAwaiter().GetResult();
       signInManager.SignOutAsync()
@@ -350,13 +361,13 @@ namespace Tlabs.Identity.Intern {
     ///<summary>Default lookup normalizer.</summary>
     public class DefaultNormalizer : ILookupNormalizer {
       ///<summary>Normalize <paramref name="email"/>.</summary>
-      public string NormalizeEmail(string email) {
+      public string? NormalizeEmail(string? email) {
         if (null == email) return email;
         return email.Normalize().ToLowerInvariant();
       }
 
       ///<summary>Normalize <paramref name="name"/>.</summary>
-      public string NormalizeName(string name) {
+      public string? NormalizeName(string? name) {
         if (null == name) return name;
         return name.Normalize().ToUpperInvariant();
       }

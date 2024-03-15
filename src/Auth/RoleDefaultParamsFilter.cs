@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc.Filters;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 using Tlabs;
 using Tlabs.Config;
-using Tlabs.Data;
 using Tlabs.Data.Model;
 using Tlabs.Identity;
 using Tlabs.Server.Model;
@@ -45,12 +47,13 @@ namespace Tlabs.Server.Auth {
         var param= ctx.ActionArguments[paramDesc.Name];
 
         if (param != null && param.GetType().IsGenericType && param.GetType().GetGenericTypeDefinition() == typeof(FilterParam<>)) {
-          dynamic filter= ctx.ActionArguments[paramDesc.Name];
+          dynamic? filter= ctx.ActionArguments[paramDesc.Name];
+          if (null == filter) return;
           List<Filter> enforcedFilters= new List<Filter>(filter.FilterList);
 
           var prop= enforcedFilters.FirstOrDefault(x => x.property == name);
 
-          if (null != prop) {
+          if (null != prop && null != prop.value) {
             // If user is filtering by this property with a different value, show him nothing
             prop.value= value.StartsWith(prop.value, StringComparison.OrdinalIgnoreCase) ? value : "#########";
           }
@@ -62,8 +65,8 @@ namespace Tlabs.Server.Auth {
       }
     }
 
-    private Role.EnforcedParameter paramsForRole(ActionExecutingContext ctx) {
-      var idSrvc= (Tlabs.Identity.IIdentityAccessor)App.ServiceProv.GetService(typeof(Tlabs.Identity.IIdentityAccessor));
+    private Role.EnforcedParameter? paramsForRole(ActionExecutingContext ctx) {
+      var idSrvc= (Tlabs.Identity.IIdentityAccessor)App.ServiceProv.GetRequiredService(typeof(Tlabs.Identity.IIdentityAccessor));
       if (null == idSrvc.Name) return null;
 
       var currentRoles= idSrvc.Roles;
@@ -72,15 +75,18 @@ namespace Tlabs.Server.Auth {
       var role= roles.FirstOrDefault(r => r.AllowedRoutes != null);
 
       if (role == null) return null;
-      return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo.Template.ToLower(App.DfltFormat));
+      return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "");
     }
 
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection> {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.AddSingleton<RoleDefaultParamsFilter>();
       }
+      /// <inheritdoc/>
+      public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)
+        => hostBuilder.ConfigureServices(svcColl => AddTo(svcColl, cfg));
     }
   }
 }

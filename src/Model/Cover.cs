@@ -10,22 +10,22 @@ namespace Tlabs.Server.Model {
   ///<summary>Error details.</summary>
   public sealed class ErrorDetails {
     ///<summary>Optional error details from <paramref name="e"/>.</summary>
-    public static ErrorDetails Optional(Exception e) {
+    public static ErrorDetails? Optional(Exception e) {
       var msgTmpl= e.MsgTemplate();
       if (null == msgTmpl) return null;
       return new ErrorDetails {
-        code= e.Source,
+        code= e.Source ?? e.GetType().Name,
         msgTemplate= msgTmpl,
         msgData= e.TemplateData()
       };
     }
     ///<summary>Technical error code to categorize or narrow the functional area affected by the error.</summary>
-    public string code { get; set; }
+    public required string code { get; set; }
     ///<summary>Error message template with the format defined with <see cref="ExceptionDataKey"/>.</summary>
     ///<remarks>This could also be used as error key to lookup a localized or application specific description (template)</remarks>
-    public string msgTemplate { get; set; }
+    public required string msgTemplate { get; set; }
     ///<summary>Optional detail data to be used to resolve placeholder values in a message template.</summary>
-    public IDictionary<string, object> msgData { get; set; }
+    public IDictionary<string, object?>? msgData { get; set; }
   }
 
 
@@ -36,10 +36,10 @@ namespace Tlabs.Server.Model {
       get { return string.IsNullOrEmpty(error); }
     }
     ///<summary>Any description of an error causing the model retrieval to fail.</summary>
-    public string error { get; set; }
+    public string? error { get; set; }
 
     ///<summary>Any details of the error causing the model retrieval to fail.</summary>
-    public ErrorDetails errDetails { get; set; }
+    public ErrorDetails? errDetails { get; set; }
   }
 
   ///<summary>Abstract cover for returned model objects.</summary>
@@ -48,7 +48,7 @@ namespace Tlabs.Server.Model {
     protected static readonly ILogger log= App.Logger<AbstractCover<T>>();
 
     ///<summary>Handle exception.</summary>
-    protected virtual void handleException(Exception e, Func<Exception, string> provideErrMessage) {
+    protected virtual void handleException(Exception e, Func<Exception, string>? provideErrMessage) {
       this.error=    provideErrMessage?.Invoke(e)
                   ?? $"Failed to return {typeof(T).Name}: ({e.Message}).";
       log.LogError(e, "Cover: {err}", this.error);
@@ -59,7 +59,7 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for a single model object being provided from delegate.</summary>
   public class ModelCover<M> : AbstractCover<M> {
     ///<summary>Default ctor.</summary>
-    protected ModelCover() { }
+    public ModelCover() { }
     ///<summary>Ctor from <paramref name="provideModel"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
     ///<remarks>Use with a controller like:
     ///<code>
@@ -72,7 +72,7 @@ namespace Tlabs.Server.Model {
     ///}
     ///</code>
     ///</remarks>
-    public ModelCover(Func<ModelCover<M>, M> provideModel, Func<Exception, string> provideErrMessage= null) {
+    public ModelCover(Func<ModelCover<M>, M> provideModel, Func<Exception, string>? provideErrMessage= null) {
       try {
         this.data= provideModel(this);
       }
@@ -81,15 +81,15 @@ namespace Tlabs.Server.Model {
       }
     }
     ///<summary>The (covered) model object.</summary>
-    public M data { get; protected set; }
+    public M? data { get; protected set; }
   }
 
   ///<summary>Cover for the result of a data query for model objects.</summary>
   public class QueryCover<M> : AbstractCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
-    protected QueryCover() { }
+    public QueryCover() { }
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string> provideErrMessage= null) {
+    public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string>? provideErrMessage= null) {
       try {
         this.data= queryResult(this);
       }
@@ -98,14 +98,14 @@ namespace Tlabs.Server.Model {
       }
     }
     ///<summary>The (covered) result of the query as enumeration.</summary>
-    public virtual IEnumerable<M> data { get; protected set; }
+    public virtual IEnumerable<M>? data { get; protected set; }
   }
 
 
   ///<summary>Cover for the result of a <see cref="IQueryable{T}"/> returned as a projected <see cref="IEnumerable{M}"/>.</summary>
   public class QueryCover<T, M> : QueryCover<M> {
     ///<summary>Default ctor called from derived class ctors.</summary>
-    protected QueryCover() { }
+    public QueryCover() { }
     ///<summary>Ctor from <paramref name="query"/> and <paramref name="selector"/>.</summary>
     public QueryCover(IQueryable<T> query, Expression<Func<T, M>> selector) {
       var p= new QueryProjector<T, M>(query, selector);
@@ -150,7 +150,7 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Cover for the concatenated result(s) of <see cref="IQueryable{T}"/>(s).</summary>
   public class ConcatQueryCover<T> : AbstractCover<T> {
-    readonly IEnumerable<T> dataEnum;
+    readonly IEnumerable<T>? dataEnum;
 
     ///<summary>Ctor from multiple <paramref name="queries"/>(s).</summary>
     public ConcatQueryCover(params IQueryable<T>[] queries) {
@@ -160,14 +160,14 @@ namespace Tlabs.Server.Model {
       }
     }
     ///<summary>The (covered) concatenated result of the query(s) as enumeration.</summary>
-    public IEnumerable<T> data { get { return dataEnum; } }
+    public IEnumerable<T>? data { get { return dataEnum; } }
 
   }
 
   ///<summary>Cover for the result of a a page limited data query for model objects.</summary>
   public class PagedQueryCover<M> : QueryCover<M> {
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public PagedQueryCover(Func<PagedQueryCover<M>, Data.Model.IResultList<M>> queryResult, Func<Exception, string> provideErrMessage = null) {
+    public PagedQueryCover(Func<PagedQueryCover<M>, Data.Model.IResultList<M>> queryResult, Func<Exception, string>? provideErrMessage= null) {
       try {
         var res= queryResult(this);
         this.total= res.Total;
@@ -213,9 +213,9 @@ namespace Tlabs.Server.Model {
         var page= pagedCover.pageParam;
 
         if (page.start.HasValue)
-          query= query.Skip(pagedCover.pageParam.start.Value);
+          query= query.Skip(pagedCover.pageParam.start!.Value);
         if (page.limit.HasValue)
-          query= query.Take(pagedCover.pageParam.limit.Value);
+          query= query.Take(pagedCover.pageParam.limit!.Value);
 #if GROUPED_COUNT_QUERY
         query= pagedCover.query.GroupBy(e => new { Total= query0.Count() }).First();
         pagedCover.total= query.Key.Total;

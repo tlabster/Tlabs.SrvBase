@@ -18,7 +18,7 @@ namespace Tlabs.Config {
     public StaticContentConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public StaticContentConfigurator(IDictionary<string, string> config) {
+    public StaticContentConfigurator(IDictionary<string, string>? config) {
       this.config= config ?? new Dictionary<string, string>(0);
       this.log= App.Logger<StaticContentConfigurator>();
     }
@@ -39,7 +39,7 @@ namespace Tlabs.Config {
       mware.AppBuilder.UseStaticFiles(); //from HostingEnv.WebRootPath
       log.LogInformation("Serving static content from: '{webroot}'", mware.HostingEnv.WebRootPath);
 
-      foreach (var pair in config.Where(p => p.Key.StartsWith("/", System.StringComparison.Ordinal))) {
+      foreach (var pair in config.Where(p => p.Key.StartsWith('/'))) {
         var contPath = Path.Combine(App.ContentRoot, pair.Value);
         if (!Directory.Exists(contPath)) {
           log.LogDebug("Ignoring non exisiting static content path: {path}", contPath);

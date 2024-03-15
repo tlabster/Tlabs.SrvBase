@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -9,9 +10,19 @@ namespace Tlabs.Config {
   ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
   public class MiddlewareContext {
     ///<summary>Web hosting environment</summary>
-    public IWebHostEnvironment HostingEnv { get; set; }
+    public required IWebHostEnvironment HostingEnv { get; set; }
     ///<summary>Application builder to be configured.</summary>
-    public IApplicationBuilder AppBuilder { get; set; }
+    public required IApplicationBuilder AppBuilder { get; set; }
+  }
+
+  ///<summary>Middleware context used with a <see cref="IConfigurator{MiddlewareContext}"/>./>.</summary>
+  public static class MiddlewareContextExt {
+    ///<summary>Returns a <see cref="WebApplication"/>.</summary>
+    public static WebApplication AsWebApplication(this MiddlewareContext ctx) => (WebApplication)ctx.AppBuilder;
+    ///<summary>Returns a <see cref="IEndpointRouteBuilder"/>.</summary>
+    public static IEndpointRouteBuilder AsEndpointBuilder(this MiddlewareContext ctx) => (IEndpointRouteBuilder)ctx.AppBuilder;
+    ///<summary>Returns a <see cref="IHost"/>.</summary>
+    public static IHost AsHost(this MiddlewareContext ctx) => (IHost)ctx.AppBuilder;
   }
 
   ///<summary>Configurator to add additional assembly path(s).</summary>
@@ -19,6 +30,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures debug pages middleware.</summary>
   public class DebugPagesConfigurator : IConfigurator<MiddlewareContext> {
+    readonly ILogger log= Tlabs.App.Logger<DebugPagesConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
@@ -26,6 +38,7 @@ namespace Tlabs.Config {
         mware.AppBuilder.UseDeveloperExceptionPage();  //see https://docs.microsoft.com/en-us/aspnet/core/fundamentals/error-handling
         //mware.AppBuilder.UseDatabaseErrorPage(); //from Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
         //mware.AppBuilder.UseBrowserLink(); //see http://vswebessentials.com/features/browserlink
+        log.LogInformation("Debug exception page configured");
       }
     }
   }

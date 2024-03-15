@@ -1,12 +1,12 @@
-﻿#nullable enable
-
-using System;
+﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Tlabs.Misc;
 using Tlabs.Sync;
@@ -19,8 +19,8 @@ namespace Tlabs.Msg.Intern {
   ///(see: <see cref="RegisterConnection(WebSocket, CancellationToken, string, Action{byte[], string}?)"/>)
   ///</remarks>
   public sealed class WsMessenger<T> : WsMessenger, IWsMessenger<T>, IDisposable {
-    const int MAX_WAIT= 1_500;
     readonly ISerializer<T> json;
+    readonly Options opt;
     readonly SyncCollection<SocketConnection> connections= Singleton<SyncCollection<SocketConnection>>.Instance;
 
     /// <inheritdoc/>
@@ -30,15 +30,29 @@ namespace Tlabs.Msg.Intern {
     }
 
     /// <summary>Ctor from <paramref name="json"/> serializer.</summary>
-    public WsMessenger(ISerializer<T> json) {
+    public WsMessenger(ISerializer<T> json) : this(json, new DefaulttOptions()) { }
+
+    /// <summary>Ctor from <paramref name="json"/> serializer and <paramref name="options"/>.</summary>
+    public WsMessenger(ISerializer<T> json, IOptions<Options> options) {
       this.json= json;
+      this.opt= options.Value;
       startConnectionStateWatcher(App.AppLifetime.ApplicationStopping);
     }
 
     /// <inheritdoc/>
-    public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string scope= IWsMessenger<T>.DFLT_SCOPE, Action<byte[], string>? receiveMessageData= null) {
+    [Obsolete("Use overload taking Action<ReadOnlyMemory<byte>, string>? msgReceiver", error: false)]
+    public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope, Action<byte[], string>? receiveMessageData) {
+      void msgReceiver(ReadOnlySequence<byte> msg, string scope) => receiveMessageData?.Invoke(msg.ToArray(), scope);
       if (ctk.IsCancellationRequested) return Task.FromCanceled(ctk);
-      var con= new SocketConnection(socket, scope, ctk, receiveMessageData, handleSocketConnectionDispose);
+      var con= new SocketConnection(socket, scope ?? IWsMessenger<T>.DFLT_SCOPE, opt, ctk, msgReceiver, handleSocketConnectionDispose);
+      connections.Add(con);
+      return con.Task;
+    }
+
+    /// <inheritdoc/>
+    public Task RegisterConnection(WebSocket socket, CancellationToken ctk, string? scope= null, Action<ReadOnlySequence<byte>, string>? receiveMessageData= null) {
+      if (ctk.IsCancellationRequested) return Task.FromCanceled(ctk);
+      var con= new SocketConnection(socket, scope ?? IWsMessenger<T>.DFLT_SCOPE, opt, ctk, receiveMessageData, handleSocketConnectionDispose);
       connections.Add(con);
       return con.Task;
     }
@@ -64,7 +78,7 @@ namespace Tlabs.Msg.Intern {
     private async Task sendToConnections(ICollection<SocketConnection> conns, T payload) {
       var msg= json.WriteObj(payload);
 
-      foreach (var con in conns) try {
+      foreach (var con in conns) try {    //***TODO: consider to run this in parallel
         if (!con.IsReady) { //detect closed socket
           con.Dispose();
           continue;
@@ -72,8 +86,8 @@ namespace Tlabs.Msg.Intern {
         try {
           /* No concurrent send operation (including await...) allowed per connection:
             */
-          if (!await con.SendSync.WaitAsync(MAX_WAIT)) throw new TimeoutException();
-          await con.WriteMessage(msg).Timeout(MAX_WAIT);   //we do not want to await the msg write forever
+          if (!await con.SendSync.WaitAsync(opt.SendTimeout)) throw new TimeoutException();
+          await con.WriteMessage(msg).Timeout(opt.SendTimeout);   //we do not want to await the msg write forever
         }
         finally {
           con.SendSync.Release();

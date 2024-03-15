@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 using Tlabs.Data;
 using Tlabs.Data.Entity;
 using Tlabs.Identity;
@@ -23,7 +26,16 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Defaults to forbidden if no other filter allows</summary>
     public virtual void OnAuthorization(AuthorizationFilterContext context) {
-      unauthorized(context);
+      setUnauthorized(context);
+    }
+
+    internal static string? ParseAuthorizationKey(Microsoft.Extensions.Primitives.StringValues authorize) {
+      string? key= null;
+      if (1 != authorize.Count) return key;
+      var authParts= authorize[0]?.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+      if (2 == authParts?.Length && string.Equals(authParts[0].Trim(), "ApiKey", StringComparison.OrdinalIgnoreCase))
+        key= authParts[1];
+      return key;
     }
 
     ///<summary>Checks if the current request is allowed for anonymous</summary>
@@ -39,32 +51,30 @@ namespace Tlabs.Server.Auth {
     }
 
     ///<summary>Checks if any of the given roles has access to the current URL</summary>
-    protected bool checkRoles(string[] currentRoles, AuthorizationFilterContext context) {
-      if (!currentRoles.Any()) {
-        unauthorized(context);
-        return false;
+    protected bool checkRoles(IEnumerable<string>? currentRoles, AuthorizationFilterContext context) {
+      if (null != currentRoles) {
+        var route= context.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "";
+        var method= context.HttpContext.Request.Method.ToUpper(App.DfltFormat);
+        var roles= currentRoles.Select(r => rolesAdm.GetByName(r));
+        if (roles.Any(role => role.AllowsAction(method, route))) return true;
       }
 
-      var route= context.ActionDescriptor.AttributeRouteInfo.Template.ToLower(App.DfltFormat);
-      var method= context.HttpContext.Request.Method.ToUpper(App.DfltFormat);
-      var roles= currentRoles.Select(r => rolesAdm.GetByName(r));
-
-      if (roles.Any(role => role.AllowsAction(method, route))) return true;
+      setUnauthorized(context);
       return false;
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0051:Remove unused private member", Justification = "Might be needed in future")]
-    static Role loadRole(string name) {
-      Role role= null;
+    static Role? loadRole(string name) {
+      Role? role= null;
       App.WithServiceScope(prov => {
-        var roleRepo= (IRepo<Role>)prov.GetService(typeof(IRepo<Role>));
+        var roleRepo= (IRepo<Role>)prov.GetRequiredService(typeof(IRepo<Role>));
         role= roleRepo.AllUntracked.Single(x => x.Name == name);
       });
       return role;
     }
 
     ///<summary>Set result to forbidden</summary>
-    protected void forbidden(AuthorizationFilterContext ctx) {
+    protected void setForbidden(AuthorizationFilterContext ctx) {
       if(isAnonymous(ctx)) return;
       log.LogInformation("Forbidden access: {path}", ctx.HttpContext.Request.Path);
 
@@ -77,7 +87,7 @@ namespace Tlabs.Server.Auth {
     }
 
     ///<summary>Set result to unauthorized</summary>
-    protected void unauthorized(AuthorizationFilterContext ctx) {
+    protected void setUnauthorized(AuthorizationFilterContext ctx) {
       if(isAnonymous(ctx)) return;
       log.LogInformation("Unauthorized access: {path}", ctx.HttpContext.Request.Path);
       var err= new JsonResult(new {
@@ -89,7 +99,7 @@ namespace Tlabs.Server.Auth {
     }
 
     ///<summary>Set result to error</summary>
-    protected void errorResult(AuthorizationFilterContext ctx, Exception e) {
+    protected void setError(AuthorizationFilterContext ctx, Exception e) {
       log.LogCritical(e, "Error in authorization process");
       var err= new JsonResult(new {
         success= false,

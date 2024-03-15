@@ -14,13 +14,13 @@ namespace Tlabs.Config {
   public class OpenWebUrlConfigurator : IConfigurator<MiddlewareContext> {
     static readonly ILogger log = Tlabs.App.Logger<OpenWebUrlConfigurator>();
     readonly IDictionary<string, string> config;
-    string url;
+    string? url;
 
     ///<summary>Default ctor.</summary>
     public OpenWebUrlConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public OpenWebUrlConfigurator(IDictionary<string, string> config) {
+    public OpenWebUrlConfigurator(IDictionary<string, string>? config) {
       this.config= config ?? new Dictionary<string, string>(0);
     }
     ///<summary>Adds the open web url configuration to the <paramref name="mware"/>.</summary>
@@ -29,9 +29,9 @@ namespace Tlabs.Config {
         /* Fall back to obtain url from 'webHosting.urls' setting:
           */
         var webSettings= App.Settings.GetSection(Tlabs.Server.ApplicationStartup.DFLT_HOST_SECTION);
-        url= webSettings.GetValue<string>("urls", "http://localhost")
-                        .Split(';').FirstOrDefault()   //'webHosting.urls' could specify multiple
-                        ?.Replace("+", "localhost");
+        url= (webSettings.GetValue<string>("urls", "http://localhost")??"")
+                         .Split(';').FirstOrDefault()   //'webHosting.urls' could specify multiple
+                         ?.Replace("+", "localhost");
       }
       Tlabs.App.WithServiceScope(svcProv => {
         var appLifetime= svcProv.GetRequiredService<IHostApplicationLifetime>();

@@ -10,8 +10,8 @@ namespace Tlabs.Identity {
   public interface IUserAdministration {
 
     ///<summary>List of <see cref="User"/>(s) matching optional <paramref name="filter"/>.</summary>
-    IResultList<User> FilteredList(QueryFilter filter= null);
-    
+    IResultList<User> FilteredList(QueryFilter? filter= null);
+
     ///<summary>Return user by <paramref name="userName"/>.</summary>
     User GetByName(string userName);
 

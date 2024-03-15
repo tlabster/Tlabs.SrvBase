@@ -24,7 +24,7 @@ namespace Tlabs.Config {
     public IdentityConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public IdentityConfigurator(IDictionary<string, string> config) {
+    public IdentityConfigurator(IDictionary<string, string>? config) {
       this.config= config ?? new Dictionary<string, string>();
     }
 

@@ -16,7 +16,7 @@ namespace Tlabs.Server.Audit {
     public void OnException(ExceptionContext context) {
       // Store trail even in case an unhandled exception would happen
       App.WithServiceScope(scope => {
-        var trail= scope.GetService<IAuditTrail>();
+        var trail= scope.GetRequiredService<IAuditTrail>();
         trail.StoreTrail(context, true);
       });
     }
@@ -28,7 +28,7 @@ namespace Tlabs.Server.Audit {
 
       // Code here would happen after the action
       App.WithServiceScope(scope => {
-        var trail= scope.GetService<IAuditTrail>();
+        var trail= scope.GetRequiredService<IAuditTrail>();
         var storeBody= context.Filters.Any(item => item is AuditRequestBodyAttribute);
 
         trail.StoreTrail(context, storeBody);
@@ -46,7 +46,7 @@ namespace Tlabs.Server.Audit {
   }
 
   ///<summary>Request body must be included in audit</summary>
-  [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
+  [AttributeUsage(AttributeTargets.Method, AllowMultiple= true, Inherited= true)]
   public class AuditRequestBodyAttribute : Attribute {
     ///<summary>Default ctor.</summary>
     public AuditRequestBodyAttribute() {}
