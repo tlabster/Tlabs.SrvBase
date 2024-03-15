@@ -16,6 +16,12 @@ namespace Tlabs.Config {
 
   ///<summary>Configures MVC to <see cref="IServiceCollection"/>>.</summary>
   public class MvcSvcConfigurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
+    ///<summary>Additional MVC options.</summary>
+    public class Options {
+      ///<summary>List of assemblies to be searched for controller classes.</summary>
+      public string[]? applicationParts { get; set; }
+    }
+
     static readonly ILogger log= App.Logger<MvcSvcConfigurator>();
     readonly IDictionary<string, string> config;
 
@@ -28,12 +34,12 @@ namespace Tlabs.Config {
     }
 
     ///<inheritdoc/>
-    public void AddTo(IServiceCollection services, IConfiguration cfg) => configureMvcServices(services);
+    public void AddTo(IServiceCollection services, IConfiguration cfg) => configureMvcServices(services, cfg);
 
-    void configureMvcServices(IServiceCollection services) {
+    void configureMvcServices(IServiceCollection services, IConfiguration cfg) {
       services.AddRouting();
       // Add ASP.NET MVC framework services.
-      services.AddControllers(opt => {
+      var mvcBuilder= services.AddControllers(opt => {
         var filterKeys= config.Keys.Where(k => k.StartsWith("filter", StringComparison.Ordinal) || k.Contains("_filter", StringComparison.Ordinal)).OrderBy(k => k);
         foreach (var filter in filterKeys) {
           var typeName= config[filter];
@@ -45,6 +51,11 @@ namespace Tlabs.Config {
       }).AddJsonOptions(configureJsonOptions)
         .AddApplicationPart(Assembly.GetEntryAssembly()!);
 
+      var options= cfg.GetSection("options").Get<Options>();
+      if (null != options?.applicationParts) foreach (var asmName in options.applicationParts) {
+        mvcBuilder.AddApplicationPart(Assembly.Load(asmName));
+        log.LogInformation("App. part added from: {part}", asmName);
+      }
 
       /* Global JSON serializer options:
        */
@@ -58,7 +69,7 @@ namespace Tlabs.Config {
     }
     ///<inheritdoc/>
     public void AddTo(IWebHostBuilder webHostBuilder, IConfiguration cfg) =>
-      webHostBuilder.ConfigureServices(services => configureMvcServices(services));
+      webHostBuilder.ConfigureServices(services => configureMvcServices(services, cfg));
 
     private void configureJsonOptions(JsonOptions opt) {
       JsonFormat.ApplyDefaultOptions(opt.JsonSerializerOptions);

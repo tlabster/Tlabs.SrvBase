@@ -21,7 +21,30 @@ namespace Tlabs.Config {
   }
 
 
-  /// <summary>Factory of an (hosted) <see cref="WebApplication"/> builder.</summary>
+  /// <summary>Hosted <see cref="WebApplication"/> builder.</summary>
+  /// <remarks>
+  /// The typical main entry poitn of a web application could look like this:
+  /// <code>
+  ///public static async Task Main(string[] args) {
+  ///
+  ///   var webAppBuilder= new HostedWebAppBuilder(args);
+  ///
+  ///   /* As an advanced option one could apply additional custom configuration
+  ///    * that has not already been applied through the appsettings configuration
+  ///    * -> right here &lt;-
+  ///    */
+  ///
+  ///   var webApp= webAppBuilder.Build();
+  ///
+  ///   /*
+  ///    * Additional API end-points could be programatically declared like:
+  ///    * webApp.MapGet("/hello", () => "Hello, world!");
+  ///    */
+  ///
+  ///   await webApp.RunAsync();
+  ///}
+  /// </code>
+  /// </remarks>
   public sealed class HostedWebAppBuilder : BaseHostedAppBuilder, IHostedWebAppBuilder {
     class WebAppBuilderFactory : IHostedBuilderFactory {
       public IHostApplicationBuilder Create(IConfigurationSection hostConfig, string[]? args) {
