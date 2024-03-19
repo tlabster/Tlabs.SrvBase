@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HostFiltering;
@@ -8,7 +7,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Tlabs.Config;
 
@@ -25,8 +23,10 @@ namespace Tlabs.Server {
     static readonly string[] ANY_HOST= new[] { "*" };
 
     ///<summary>Create a <see cref="IHostBuilder"/> from optional command line <paramref name="args"/>.</summary>
+    [Obsolete("Use Tlabs.Config.HostedAppBuilder as a replacement.", error: false)]
     public static IHostBuilder CreateServerHostBuilder(string[]? args= null) => CreateServerHostBuilder(DFLT_HOST_SECTION, args);
     ///<summary>Create a <see cref="IHostBuilder"/> from <paramref name="hostSection"/> and command line <paramref name="args"/>.</summary>
+    [Obsolete("Use Tlabs.Config.HostedAppBuilder as a replacement.", error: false)]
     public static IHostBuilder CreateServerHostBuilder(string hostSection, string[]? args= null) {
 
       var hostBuilder= Tlabs.ApplicationStartup.CreateAppHostBuilder(hostSection, args, (hostBuilder, hostSettings) => {

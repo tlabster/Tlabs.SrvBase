@@ -1,17 +1,14 @@
 ﻿using System.IO;
-using System.Linq;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
 using Tlabs.Config;
 
 using Xunit;
-
+#pragma warning disable CS0618
 namespace Tlabs.Server.Tests {
 
   [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
