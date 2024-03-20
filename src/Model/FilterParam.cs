@@ -55,11 +55,10 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Filter parameter model to be bound via MVC model binding.</summary>
   ///<remarks>This filter parameter model is aimed to bind a request like:
-  /// <code>api/sampleTypes?_dc=1020304050607&amp;start=0&amp;limit=25&amp;filter=[{"property":"lastname","value":"aal"}]</code>
-  ///<para>See MVC model binding: https://docs.microsoft.com/en-us/aspnet/core/mvc/models/model-binding</para>
+  /// <code>api/sampleTypes?start=0&amp;limit=25&amp;filter=[{"property":"lastname","value":"xyz"}]</code>
   /// NOTE:<para>
-  /// Unfortunately MVC's model binding requires that the class must have a public default constructor and thus does not support injecting dependencies through DI...<br/>
-  /// Furthermore complex type properties are *NOT* being bound using JSON deserialization.
+  /// This binds the <see cref="FilterParam{T}.filter"/> to an array of <see cref="Filter"/> objects and
+  /// <see cref="FilterParam{T}.sort"/> to an array of <see cref="Sorter"/> objects respectively.
   ///</para>
   ///</remarks>
   public class FilterParam<TEntity> : PagingParam {
@@ -130,6 +129,7 @@ namespace Tlabs.Server.Model {
     ///<summary>Value to compare.</summary>
     public string? value { get; set; }
     ///<summary>Compare operator.</summary>
+    [Obsolete("This gets handled with the filterMap of a entity repo.", error: false)]
     public string? @operator { get; set; }
   }
 
