@@ -15,6 +15,7 @@ using Tlabs.Data.Serialize.Json;
 namespace Tlabs.Config {
 
   ///<summary>Configures MVC to <see cref="IServiceCollection"/>>.</summary>
+  ///<remarks>Includes the setup for minimal API routing.</remarks>
   public class MvcSvcConfigurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
     ///<summary>Additional MVC options.</summary>
     public class Options {
@@ -38,6 +39,8 @@ namespace Tlabs.Config {
 
     void configureMvcServices(IServiceCollection services, IConfiguration cfg) {
       services.AddRouting();
+      services.AddEndpointsApiExplorer();
+
       // Add ASP.NET MVC framework services.
       var mvcBuilder= services.AddControllers(opt => {
         var filterKeys= config.Keys.Where(k => k.StartsWith("filter", StringComparison.Ordinal) || k.Contains("_filter", StringComparison.Ordinal)).OrderBy(k => k);

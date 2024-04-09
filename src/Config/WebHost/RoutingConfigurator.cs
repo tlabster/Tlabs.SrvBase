@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Http.Json;
 
 namespace Tlabs.Config {
 
-  ///<summary>Configures routing services to <see cref="IServiceCollection"/>>.</summary>
+  ///<summary>Configures routing services to <see cref="IServiceCollection"/>.</summary>
+  ///<remarks>Use this configurator to setup the routing for minimal API w/o MVC controllers.</remarks>
   public class RoutingConfigurator : IConfigurator<IWebHostBuilder> {
     ///<summary>Use regex config name</summary>
     public const string USE_REGEX_CFG= "userRegex";
@@ -31,10 +32,12 @@ namespace Tlabs.Config {
         var svc=   config.TryGetValue(USE_REGEX_CFG, out var useRegex) && Boolean.TryParse(useRegex, out var use) && use
                  ? services.AddRouting()
                  : services.AddRoutingCore();
+        svc.AddEndpointsApiExplorer();
         svc.Configure<JsonOptions>(opt => {
           if (config.TryGetValue("formatting", out var frmt))
             opt.SerializerOptions.WriteIndented= frmt.Equals("Indented", StringComparison.OrdinalIgnoreCase);
         });
+        log.LogInformation("API routing configured");
       });
 
   }
