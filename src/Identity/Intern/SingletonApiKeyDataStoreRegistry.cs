@@ -110,11 +110,14 @@ namespace Tlabs.Identity.Intern {
       return Convert.ToBase64String(randomBytes);
     }
 
+    static User dummyUser(string name) => new User { UserName= name, NormalizedUserName= name };
+
     static KeyToken[] internalRregisteredKeys() => ReturnFrom((repo, hasher)
       => repo.AllUntracked.LoadRelated(repo.Store, k => k.Roles)!.ThenLoadRelated(repo.Store, k => k.Role)
              .Where(r => r.ValidityState != ApiKey.Status.DELETED.ToString()).Select(r => KeyToken.FromEntity(r)).ToArray()
     ) ?? Array.Empty<KeyToken>();
     static KeyToken? internalGetValidKeyToken(string key) => ReturnFrom((repo, hasher) => {
+
       var ent= repo.AllUntracked
                    .LoadRelated(repo.Store, x => x.Roles)!.ThenLoadRelated(repo.Store, x => x.Role)
                    .Where(r =>
@@ -123,12 +126,22 @@ namespace Tlabs.Identity.Intern {
                      && r.ValidityState == ApiKey.Status.ACTIVE.ToString()
                    )
                   .AsEnumerable() //Load into memory since VerifyHashedPassword does not evaluate in DB
-                  .SingleOrDefault(r => hasher.VerifyHashedPassword(r.TokenName??"", r.Hash??"", key) == PasswordVerificationResult.Success);
+                  .SingleOrDefault(k => isVerfiedApiKey(k));
       return null != ent ? KeyToken.FromEntity(ent) : null; //?? throw EX.New<InvalidOperationException>("API key not found: {key}", key));
+
+      bool isVerfiedApiKey(ApiKey apiKey) {
+        var res= hasher.VerifyHashedPassword(
+                   dummyUser(apiKey.TokenName??""), //user param. is unused, create dummy user
+                   apiKey.Hash??"",
+                   key
+                 );
+        return res == PasswordVerificationResult.Success;
+      }
+
     });
 
     static ApiKey internalRegister(KeyToken token, string key) => ReturnFrom((repo, hasher) => {
-      var hash= hasher.HashPassword(token.TokenName??"", key);
+      var hash= hasher.HashPassword(dummyUser(token.TokenName??""), key); //user param. is unused, create dummy user
 
       //first, hash and store in db
       var apiKey= new ApiKey {
@@ -163,10 +176,10 @@ namespace Tlabs.Identity.Intern {
       return KeyToken.FromEntity(apiKey);
     });
 
-    static T? ReturnFrom<T>(Func<IRepo<ApiKey>, IPasswordHasher<string>, T> doWith) {
+    static T? ReturnFrom<T>(Func<IRepo<ApiKey>, IPasswordHasher<User>, T> doWith) {
       T? ret= default;
       Tlabs.App.WithServiceScope(prov => {
-        ret= doWith(prov.GetRequiredService<IRepo<ApiKey>>(), prov.GetRequiredService<IPasswordHasher<string>>());
+        ret= doWith(prov.GetRequiredService<IRepo<ApiKey>>(), prov.GetRequiredService<IPasswordHasher<User>>());
       });
       return ret;
     }
