@@ -21,7 +21,7 @@ namespace Tlabs.Identity.Intern {
     class LazyCache {
       internal static ICache<string, KeyToken> instance;
       static LazyCache() {
-        instance= new LookupCache<string, KeyToken>(SingletonApiKeyDataStoreRegistry.internalRregisteredKeys().Select(t => new KeyValuePair<string, KeyToken>(t.TokenName??"", t)));
+        instance= new LookupCache<string, KeyToken>(SingletonApiKeyDataStoreRegistry.internalRegisteredKeys().Select(t => new KeyValuePair<string, KeyToken>(t.TokenName??"", t)));
         log.LogInformation("ApiKey cache initialized with {cnt} key tokens.", instance.Entries.Count());
       }
     }
@@ -68,10 +68,10 @@ namespace Tlabs.Identity.Intern {
     }
 
     ///<inheritdoc/>
-    public KeyToken[] RegisteredKeys() => internalRregisteredKeys();
+    public KeyToken[] RegisteredKeys() => internalRegisteredKeys();
 
     ///<inheritdoc/>
-    public int RegisteredKeyCount() => internalRregisteredKeys().Length;
+    public int RegisteredKeyCount() => internalRegisteredKeys().Length;
 
     ///<inheritdoc/>
     public KeyToken? VerifiedKey(string key) {
@@ -112,12 +112,12 @@ namespace Tlabs.Identity.Intern {
 
     static User dummyUser(string name) => new User { UserName= name, NormalizedUserName= name };
 
-    static KeyToken[] internalRregisteredKeys() => ReturnFrom((repo, hasher)
+    static KeyToken[] internalRegisteredKeys() => ReturnFrom((repo, hasher)
       => repo.AllUntracked.LoadRelated(repo.Store, k => k.Roles)!.ThenLoadRelated(repo.Store, k => k.Role)
              .Where(r => r.ValidityState != ApiKey.Status.DELETED.ToString()).Select(r => KeyToken.FromEntity(r)).ToArray()
     ) ?? Array.Empty<KeyToken>();
-    static KeyToken? internalGetValidKeyToken(string key) => ReturnFrom((repo, hasher) => {
 
+    static KeyToken? internalGetValidKeyToken(string key) => ReturnFrom((repo, hasher) => {
       var ent= repo.AllUntracked
                    .LoadRelated(repo.Store, x => x.Roles)!.ThenLoadRelated(repo.Store, x => x.Role)
                    .Where(r =>
@@ -126,10 +126,10 @@ namespace Tlabs.Identity.Intern {
                      && r.ValidityState == ApiKey.Status.ACTIVE.ToString()
                    )
                   .AsEnumerable() //Load into memory since VerifyHashedPassword does not evaluate in DB
-                  .SingleOrDefault(k => isVerfiedApiKey(k));
+                  .SingleOrDefault(k => isVerifiedApiKey(k));
       return null != ent ? KeyToken.FromEntity(ent) : null; //?? throw EX.New<InvalidOperationException>("API key not found: {key}", key));
 
-      bool isVerfiedApiKey(ApiKey apiKey) {
+      bool isVerifiedApiKey(ApiKey apiKey) {
         var res= hasher.VerifyHashedPassword(
                    dummyUser(apiKey.TokenName??""), //user param. is unused, create dummy user
                    apiKey.Hash??"",
