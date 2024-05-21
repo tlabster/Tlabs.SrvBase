@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
-using Tlabs.Identity;
-
 namespace Tlabs.Identity {
 
   ///<summary>Accessor retuning the current identity registered with the HttpContext.</summary>
@@ -31,9 +29,9 @@ namespace Tlabs.Identity {
       }
     }
     ///<inheritdoc/>
-    public override string Name => Principal.Identity?.Name ?? "?";
+    public override string? Name => Principal.Identity?.Name;
     ///<inheritdoc/>
-    public override string AuthenticationType => Principal.Identity?.AuthenticationType ?? "?";
+    public override string? AuthenticationType => Principal.Identity?.AuthenticationType;
     ///<inheritdoc/>
     public override int Id {
       get {
