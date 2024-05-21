@@ -18,6 +18,9 @@ namespace Tlabs.Server.Controller {
     public string ActionRoute => $"{ControllerContext.ActionDescriptor?.ControllerName}/{ControllerContext.ActionDescriptor?.ActionName}";
 
     ///<summary>Resolve API error from exception.</summary>
+    ///<remarks>This default resolver is rather sketchy and could be inaccurate in many cases.
+    ///Resolving more specific error cases needs to be done in a derived implementation.
+    ///</remarks>
     protected virtual string resolveError(Exception e, string? msg0= null) {
       e.Source= ActionRoute;
       // var inner= e.InnerException;
@@ -50,7 +53,7 @@ namespace Tlabs.Server.Controller {
           msg??= kn.Message;
         break;
 
-        case InvalidOperationException io when io.Message.EndsWith("contains no elements"):
+        case InvalidOperationException io when io.Message.StartsWith("Sequence contains no"):
           code= StatusCodes.Status404NotFound;
           msg??= io.Message;
         break;
