@@ -81,7 +81,7 @@ namespace Tlabs.Msg.Intern {
       /// <summary>Write <paramref name="msgData"/></summary>
       public Task WriteMessage(byte[] msgData) => ws.SendAsync(msgData, WebSocketMessageType.Text, true, ctk);
 
-      private void startReceivingMessages(Action<ReadOnlySequence<byte>, string>? msgReciever) {
+      private void startReceivingMessages(Action<ReadOnlySequence<byte>, string>? msgReceiver) {
         var buffer= new SegmentSequenceBuffer();
         /* Start the message reception pump in background:
          * NOTE: The socket MUST always listen to receive messages in order to have the close handshake being processed...
@@ -91,10 +91,10 @@ namespace Tlabs.Msg.Intern {
             while (IsReady && !ctk.IsCancellationRequested) {
               var res= await ws.ReceiveAsync(buffer.GetMemory(), ctk);
               buffer.Advance(res.Count, false);
-              // if (res.MessageType == WebSocketMessageType.Close) Dispose();
+              if (res.MessageType == WebSocketMessageType.Close) break;
               if (res.MessageType != WebSocketMessageType.Text) throw new WebSocketException("Invalid message type");
 
-              /* Recieve one complete message:
+              /* Receive one complete message:
               */
               while (!res.EndOfMessage) {
                 if (!IsReady || ctk.IsCancellationRequested) return;
@@ -109,7 +109,7 @@ namespace Tlabs.Msg.Intern {
                 buffer.Advance(res.Count, false);
               }
               if (buffer.WrittenCount > 0) try {
-                msgReciever?.Invoke(buffer.Sequence, Scope);     //call message reciever
+                msgReceiver?.Invoke(buffer.Sequence, Scope);     //call message receiver
               }
               catch (Exception e) { log.LogWarning("Error receiving message ({msg})", e.Message); }
               buffer.Reset();
