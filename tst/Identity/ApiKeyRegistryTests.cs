@@ -16,12 +16,12 @@ namespace Tlabs.Identity.Intern.Test {
 
   [Collection("App.ServiceProv")]   //All tests of classes with this same collection name do never run in parallel /https://xunit.net/docs/running-tests-in-parallel)
   public class DefaultApiKeyRegistryTests : IClassFixture<DefaultApiKeyRegistryTests.Fixture> {
-    public class MockPasswordHasher : IPasswordHasher<string> {
-      public string HashPassword(string user, string password) => $"{user}/{password}";
+    public class MockPasswordHasher : IPasswordHasher<User> {
+      public string HashPassword(User user, string password) => $"{user}/{password}";
 
-      public PasswordVerificationResult VerifyHashedPassword(string user, string hashedPassword, string providedPassword) {
+      public PasswordVerificationResult VerifyHashedPassword(User user, string hashedPassword, string providedPassword) {
         var hash= hashedPassword.Split('/');
-        return user == hash[0] && hash[1] ==  providedPassword ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
+        return user.UserName == hash[0] && hash[1] ==  providedPassword ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
       }
     }
     public class Fixture : IDisposable {
@@ -29,7 +29,7 @@ namespace Tlabs.Identity.Intern.Test {
       public IApiKeyRegistry ApiKeyRegistry { get; }
       public IRepo<ApiKey> ApiKeyRepo { get; }
       public IList<ApiKey> DataStore { get; }
-      public IPasswordHasher<string> PasswordHasher { get; }
+      public IPasswordHasher<User> PasswordHasher { get; }
       public IServiceProvider SvcProvider { get; }
       public IServiceProvider SvcProviderScope { get; set; }
       public IServiceScope SvcScope { get; }
@@ -175,7 +175,7 @@ namespace Tlabs.Identity.Intern.Test {
         this.ApiKeyRepo= apiKeyRepoMock.Object;
 
         var svcProvScp= new Mock<IServiceProvider>();
-        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IPasswordHasher<string>)))).Returns(this.PasswordHasher);
+        svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IPasswordHasher<User>)))).Returns(this.PasswordHasher);
         svcProvScp.Setup(r => r.GetService(It.Is<Type>(t => t == typeof(IRepo<ApiKey>)))).Returns(this.ApiKeyRepo);
         this.SvcProviderScope= svcProvScp.Object;
 
