@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 
-using Tlabs.Data;
+using Tlabs.IO;
 
 namespace Tlabs.Server.Controller {
 
@@ -34,12 +32,16 @@ namespace Tlabs.Server.Controller {
 
     ///<summary><see cref="IFormFile.OpenReadStream()"/> variation to handle base64 decoding.</summary>
     public static Stream OpenBase64DecodedReadStream(this IFormFile file) {
-      if (null == file) throw new ArgumentNullException(nameof(file));
+      ArgumentNullException.ThrowIfNull(file);
 
       //check for possible base64 encoding
       if (file.Headers["Content-Transfer-Encoding"].ToString().Equals("base64", StringComparison.OrdinalIgnoreCase))
-        using (var rd = new StreamReader(file.OpenReadStream()))
-          return new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
+#if DECODE_IN_MEMORY
+      using (var rd = new StreamReader(file.OpenReadStream()))
+        return new MemoryStream(Convert.FromBase64String(rd.ReadToEnd()));
+#else
+      return Base64Stream.CreateForDecoding(file.OpenReadStream());
+#endif
       return file.OpenReadStream();
     }
   }
