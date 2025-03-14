@@ -31,7 +31,7 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public void OnActionExecuting(ActionExecutingContext ctx) {
       //Validate??
-      var forcedParams = paramsForRole(ctx);
+      var forcedParams = ParamsForRole(ctx);
       if (null == forcedParams) return;
 
       // Get parameter name from role
@@ -65,7 +65,7 @@ namespace Tlabs.Server.Auth {
       }
     }
 
-    private Role.EnforcedParameter? paramsForRole(ActionExecutingContext ctx) {
+    private Role.EnforcedParameter? ParamsForRole(ActionExecutingContext ctx) {
       var idSrvc = (IIdentityAccessor)App.ServiceProv.GetRequiredService(typeof(IIdentityAccessor));
       if (null == idSrvc.Name) return null;
 
