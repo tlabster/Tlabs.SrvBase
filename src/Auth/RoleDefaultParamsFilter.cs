@@ -17,11 +17,11 @@ using Tlabs.Server.Model;
 namespace Tlabs.Server.Auth {
   ///<summary>Filter that </summary>
   public class RoleDefaultParamsFilter : IActionFilter {
-    private static readonly ILogger log= Tlabs.App.Logger<RoleDefaultParamsFilter>();
+    private static readonly ILogger log = Tlabs.App.Logger<RoleDefaultParamsFilter>();
     readonly IRolesAdministration rolesAdm;
 
     ///<summary>Ctor from <paramref name="rolesAdm"/>. </summary>
-    public RoleDefaultParamsFilter(IRolesAdministration rolesAdm) => this.rolesAdm= rolesAdm;
+    public RoleDefaultParamsFilter(IRolesAdministration rolesAdm) => this.rolesAdm = rolesAdm;
 
     ///<inheritdoc/>
     public void OnActionExecuted(ActionExecutedContext context) {
@@ -31,7 +31,7 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public void OnActionExecuting(ActionExecutingContext ctx) {
       //Validate??
-      var forcedParams= paramsForRole(ctx);
+      var forcedParams = ParamsForRole(ctx);
       if (null == forcedParams) return;
 
       // Get parameter name from role
@@ -40,39 +40,39 @@ namespace Tlabs.Server.Auth {
         return;
       }
 
-      var paramDesc= ctx.ActionDescriptor.Parameters[forcedParams.Position];
+      var paramDesc = ctx.ActionDescriptor.Parameters[forcedParams.Position];
 
       foreach (var name in forcedParams.Values.Keys) {
-        var value= forcedParams.Values[name];
-        var param= ctx.ActionArguments[paramDesc.Name];
+        var value = forcedParams.Values[name];
+        var param = ctx.ActionArguments[paramDesc.Name];
 
         if (param != null && param.GetType().IsGenericType && param.GetType().GetGenericTypeDefinition() == typeof(FilterParam<>)) {
-          dynamic? filter= ctx.ActionArguments[paramDesc.Name];
-          if (null == filter) return;
-          List<Filter> enforcedFilters= new List<Filter>(filter.FilterList);
+          var filterListProperty = param.GetType().GetProperty("FilterList");
 
-          var prop= enforcedFilters.FirstOrDefault(x => x.property == name);
+          var filterListValue = filterListProperty?.GetValue(param) as List<Filter>;
+          List<Filter> enforcedFilters = [.. filterListValue ?? []];
+
+          var prop = enforcedFilters.FirstOrDefault(x => x.property == name);
 
           if (null != prop && null != prop.value) {
             // If user is filtering by this property with a different value, show him nothing
-            prop.value= value.StartsWith(prop.value, StringComparison.OrdinalIgnoreCase) ? value : "#########";
+            prop.value = value.StartsWith(prop.value, StringComparison.OrdinalIgnoreCase) ? value : "#########";
+          } else {
+            enforcedFilters.Add(new Filter { property = name, value = value });
           }
-          else {
-            enforcedFilters.Add(new Filter { property= name, value= value });
-          }
-          filter.FilterList= enforcedFilters;
+          filterListProperty?.SetValue(param, enforcedFilters);
         }
       }
     }
 
-    private Role.EnforcedParameter? paramsForRole(ActionExecutingContext ctx) {
-      var idSrvc= (Tlabs.Identity.IIdentityAccessor)App.ServiceProv.GetRequiredService(typeof(Tlabs.Identity.IIdentityAccessor));
+    private Role.EnforcedParameter? ParamsForRole(ActionExecutingContext ctx) {
+      var idSrvc = (IIdentityAccessor)App.ServiceProv.GetRequiredService(typeof(IIdentityAccessor));
       if (null == idSrvc.Name) return null;
 
-      var currentRoles= idSrvc.Roles;
-      var roles= currentRoles.Where(x => null != x).Select(x => rolesAdm.GetByName(x));
+      var currentRoles = idSrvc.Roles;
+      var roles = currentRoles.Where(x => null != x).Select(x => rolesAdm.GetByName(x));
 
-      var role= roles.FirstOrDefault(r => r.AllowedRoutes != null);
+      var role = roles.FirstOrDefault(r => r.AllowedRoutes != null);
 
       if (role == null) return null;
       return role.ParamsForAction(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "");
