@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
 
+using Tlabs.Data.Model;
+
 namespace Tlabs.Server.Model {
 
   ///<summary>Cover for a single model object being provided from async delegate.</summary>
@@ -23,7 +25,7 @@ namespace Tlabs.Server.Model {
     ///}
     ///</code>
     ///</remarks>
-    public AsyncModelCover(Func<ModelCover<T>, Task<T>> provideModel, Func<Exception, string>? provideErrMessage= null) {
+    public AsyncModelCover(Func<ModelCover<T>, Task<T>> provideModel, Func<Exception, string>? provideErrMessage = null) {
       this.resTask= provideModel(this);   //start task
       this.provideErrMessage= provideErrMessage;
     }
@@ -43,7 +45,7 @@ namespace Tlabs.Server.Model {
     readonly Task<IEnumerable<T>> resTask;
     readonly Func<Exception, string>? provideErrMessage;
     ///<summary>Ctor from async <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public AsyncQueryCover(Func<QueryCover<T>, Task<IEnumerable<T>>> queryResult, Func<Exception, string>? provideErrMessage= null) {
+    public AsyncQueryCover(Func<QueryCover<T>, Task<IEnumerable<T>>> queryResult, Func<Exception, string>? provideErrMessage = null) {
       this.resTask= queryResult(this);
       this.provideErrMessage= provideErrMessage;
     }
@@ -58,4 +60,28 @@ namespace Tlabs.Server.Model {
     }
   }
 
+  ///<summary>Cover for the result of a data query returning an <see cref="IEnumerable{T}"/>.</summary>
+  public class AsyncPagedQueryCover<T> : PagedQueryCover<T>, IActionResult {
+    readonly Task<IResultList<T>> resTask;
+    readonly Func<Exception, string> provideErrMessage;
+
+    ///<summary>Ctor from async <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
+    public AsyncPagedQueryCover(Func<PagedQueryCover<T>, Task<IResultList<T>>> queryResult, Func<Exception, string> provideErrMessage = null) {
+      resTask = queryResult(this);
+      this.provideErrMessage = provideErrMessage;
+    }
+
+    ///<inheritdoc/>
+    public async Task ExecuteResultAsync(ActionContext ctx) {
+      try {
+        var res = await resTask;
+        data = res.Data;
+        total = res.Total;
+      }
+      catch (Exception e) {
+        handleException(e, provideErrMessage);
+      }
+      await new ObjectResult(this) { DeclaredType = typeof(AsyncQueryCover<T>) }.ExecuteResultAsync(ctx);
+    }
+  }
 }
