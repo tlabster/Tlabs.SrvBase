@@ -63,10 +63,10 @@ namespace Tlabs.Server.Model {
   ///<summary>Cover for the result of a data query returning an <see cref="IEnumerable{T}"/>.</summary>
   public class AsyncPagedQueryCover<T> : PagedQueryCover<T>, IActionResult {
     readonly Task<IResultList<T>> resTask;
-    readonly Func<Exception, string> provideErrMessage;
+    readonly Func<Exception, string>? provideErrMessage;
 
     ///<summary>Ctor from async <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public AsyncPagedQueryCover(Func<PagedQueryCover<T>, Task<IResultList<T>>> queryResult, Func<Exception, string> provideErrMessage = null) {
+    public AsyncPagedQueryCover(Func<PagedQueryCover<T>, Task<IResultList<T>>> queryResult, Func<Exception, string>? provideErrMessage = null) {
       resTask = queryResult(this);
       this.provideErrMessage = provideErrMessage;
     }
