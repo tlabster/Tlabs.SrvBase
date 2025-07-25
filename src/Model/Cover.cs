@@ -72,7 +72,7 @@ namespace Tlabs.Server.Model {
     ///}
     ///</code>
     ///</remarks>
-    public ModelCover(Func<ModelCover<M>, M> provideModel, Func<Exception, string>? provideErrMessage= null) {
+    public ModelCover(Func<ModelCover<M>, M> provideModel, Func<Exception, string>? provideErrMessage = null) {
       try {
         this.data= provideModel(this);
       }
@@ -89,7 +89,7 @@ namespace Tlabs.Server.Model {
     ///<summary>Default ctor called from derived class ctors.</summary>
     public QueryCover() { }
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string>? provideErrMessage= null) {
+    public QueryCover(Func<QueryCover<M>, IEnumerable<M>> queryResult, Func<Exception, string>? provideErrMessage = null) {
       try {
         this.data= queryResult(this);
       }
@@ -166,8 +166,11 @@ namespace Tlabs.Server.Model {
 
   ///<summary>Cover for the result of a a page limited data query for model objects.</summary>
   public class PagedQueryCover<M> : QueryCover<M> {
+    ///<summary>Default ctor called from derived class ctors.</summary>
+    public PagedQueryCover() { }
+
     ///<summary>Ctor from <paramref name="queryResult"/> and (optional) <paramref name="provideErrMessage"/> delegates.</summary>
-    public PagedQueryCover(Func<PagedQueryCover<M>, Data.Model.IResultList<M>> queryResult, Func<Exception, string>? provideErrMessage= null) {
+    public PagedQueryCover(Func<PagedQueryCover<M>, Data.Model.IResultList<M>> queryResult, Func<Exception, string>? provideErrMessage = null) {
       try {
         var res= queryResult(this);
         this.total= res.Total;
