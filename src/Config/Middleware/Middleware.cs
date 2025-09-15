@@ -52,7 +52,7 @@ namespace Tlabs.Config {
       var appBuilder= mware.AppBuilder;
       appBuilder.UseRouting();
       appBuilder.UseAuthentication();
-      appBuilder.UseEndpoints(endppints => endppints.MapControllers());
+      appBuilder.UseEndpoints(endpoints => endpoints.MapControllers());
       log.LogInformation("MVC middleware configured");
     }
   }

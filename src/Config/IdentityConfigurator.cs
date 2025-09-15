@@ -14,83 +14,98 @@ using Tlabs.Data.Entity;
 using Tlabs.Identity;
 using Tlabs.Identity.Intern;
 
-namespace Tlabs.Config {
+namespace Tlabs.Config
+{
 
   ///<summary>Configures IdentiytFramework.</summary>
-  public class IdentityConfigurator : IConfigurator<IServiceCollection> {
+  public class IdentityConfigurator : IConfigurator<IServiceCollection>
+  {
     readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
     public IdentityConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public IdentityConfigurator(IDictionary<string, string>? config) {
-      this.config= config ?? new Dictionary<string, string>();
+    public IdentityConfigurator(IDictionary<string, string>? config)
+    {
+      this.config = config ?? new Dictionary<string, string>();
     }
 
     ///<inheritdoc/>
-    public void AddTo(IServiceCollection services, IConfiguration cfg) {
-      var log= App.Logger<IdentityConfigurator>();
+    public void AddTo(IServiceCollection services, IConfiguration cfg)
+    {
+      var log = App.Logger<IdentityConfigurator>();
 
       services.AddIdentity<User, Role>()
               .AddDefaultTokenProviders();
 
-      services.Configure<IdentityOptions>(options => {
+      services.Configure<IdentityOptions>(options =>
+      {
         // Password settings
-        var pwOptions= new PasswordOptions();
+        var pwOptions = new PasswordOptions();
         config.TryGetValue(nameof(pwOptions.RequireDigit), out var cfgStr);
-        pwOptions.RequireDigit= Boolean.Parse(cfgStr ?? "true");
+        pwOptions.RequireDigit = Boolean.Parse(cfgStr ?? "true");
 
         config.TryGetValue(nameof(pwOptions.RequiredLength), out cfgStr);
-        pwOptions.RequiredLength= int.Parse(cfgStr ?? "8", App.DfltFormat);
+        pwOptions.RequiredLength = int.Parse(cfgStr ?? "8", App.DfltFormat);
 
         config.TryGetValue(nameof(pwOptions.RequireLowercase), out cfgStr);
-        pwOptions.RequireLowercase= Boolean.Parse(cfgStr ?? "true");
+        pwOptions.RequireLowercase = Boolean.Parse(cfgStr ?? "true");
 
         config.TryGetValue(nameof(pwOptions.RequireNonAlphanumeric), out cfgStr);
-        pwOptions.RequireNonAlphanumeric= Boolean.Parse(cfgStr ?? "false");
+        pwOptions.RequireNonAlphanumeric = Boolean.Parse(cfgStr ?? "false");
 
         config.TryGetValue(nameof(pwOptions.RequireUppercase), out cfgStr);
-        pwOptions.RequireUppercase= Boolean.Parse(cfgStr ?? "false");
+        pwOptions.RequireUppercase = Boolean.Parse(cfgStr ?? "false");
 
-        options.Password= pwOptions;
+        options.Password = pwOptions;
 
         // User settings
         config.TryGetValue(nameof(options.User.RequireUniqueEmail), out cfgStr);
-        options.User.RequireUniqueEmail= Boolean.Parse(cfgStr ?? "false");
+        options.User.RequireUniqueEmail = Boolean.Parse(cfgStr ?? "false");
 
         // Lockout settings
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
         options.Lockout.MaxFailedAccessAttempts = 10;
       });
 
-      services.ConfigureApplicationCookie(options => {
-        if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null) {
+      services.ConfigureApplicationCookie(options =>
+      {
+        if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null)
+        {
 #pragma warning disable CA1806  //use minutes default value
           Int32.TryParse(cfgStr, out var minutes);
 #pragma warning restore CA1806
-          if (minutes > 0) {
-            options.SlidingExpiration= true;
-            options.ExpireTimeSpan= new TimeSpan(0, minutes, 0);
+          if (minutes > 0)
+          {
+            options.SlidingExpiration = true;
+            options.ExpireTimeSpan = new TimeSpan(0, minutes, 0);
           }
         }
-        options.Events= new CookieAuthenticationEvents {
-          OnRedirectToAccessDenied= ctx => {
-            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
+        options.Events = new CookieAuthenticationEvents
+        {
+          OnRedirectToAccessDenied = ctx =>
+          {
+            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK)
+            {
               ctx.Response.StatusCode = (int)HttpStatusCode.Forbidden;
               ctx.Response.ContentType = "application/json";
             }
-            else {
+            else
+            {
               ctx.Response.Redirect(ctx.RedirectUri);
             }
             return System.Threading.Tasks.Task.FromResult(0);
           },
-          OnRedirectToLogin= ctx => {
-            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
+          OnRedirectToLogin = ctx =>
+          {
+            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK)
+            {
               ctx.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
               ctx.Response.ContentType = "application/json";
             }
-            else {
+            else
+            {
               ctx.Response.Redirect(ctx.RedirectUri);
             }
             return System.Threading.Tasks.Task.FromResult(0);
