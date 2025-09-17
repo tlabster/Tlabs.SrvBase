@@ -8,13 +8,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Http;
 
-using Tlabs.Identity;
-using Tlabs.Identity.Intern;
-using Tlabs.Server.Auth;
-
-
-
-
 namespace Tlabs.Config
 {
 
@@ -37,12 +30,10 @@ namespace Tlabs.Config
     {
       var log = App.Logger<KeycloakIdentityConfigurator>();
 
-
       services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
         {
           options.Authority = config["keycloakAuthority"];
-
           options.Audience = config["keycloakAudience"];
           options.RequireHttpsMetadata = false; // for dev only
 

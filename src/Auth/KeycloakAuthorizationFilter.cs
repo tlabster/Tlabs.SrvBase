@@ -50,11 +50,8 @@ namespace Tlabs.Server.Auth
 
       var accessToken = authHeader.ToString()["Bearer ".Length..].Trim();
 
-      // Build resource/scope dynamically (example: path+HTTP method)
-      var resource = ctx.ActionDescriptor.AttributeRouteInfo?.Template ?? request.Path;
+      var resource = (ctx.ActionDescriptor.AttributeRouteInfo?.Template ?? request.Path).ToLowerInvariant();
       var scope = request.Method.ToLowerInvariant();
-
-      //var saToken = await tokenProvider.GetServiceAccountTokenAsync(); // Get service account token
 
       var client = httpClientFactory.CreateClient();
 
@@ -65,7 +62,10 @@ namespace Tlabs.Server.Auth
         {
           ["grant_type"] = "urn:ietf:params:oauth:grant-type:uma-ticket",
           ["response_mode"] = "decision",
-          ["audience"] = authOptions.keycloakAudience,
+          ["permission"] = $"{resource}#{scope}",
+          ["permission_resource_format"] = "uri",
+          ["permission_resource_matching_uri"] = "true",
+          ["audience"] = authOptions.keycloakAudience!,
         })
       };
 
@@ -89,16 +89,19 @@ namespace Tlabs.Server.Auth
       ctx.Result = err;
     }
 
-    ///<summary>Filter options.</summary>
+    ///<summary>Keycloak options.</summary>
     public class Options
     {
       ///<summary>Keycloak authority URL.</summary>
-      public string? keycloakAuthority { get; set; }
-      public string? keycloakAuth { get; set; }
+      public string keycloakAuthority { get; set; } = "";
       ///<summary>Audience for Keycloak tokens.</summary>
-      public string? keycloakAudience { get; set; }
-      public string? clientId { get; set; }
-      public string? clientSecret { get; set; }
+      public string keycloakAudience { get; set; } = "";
+      /// <summary>Client ID for service account</summary>
+      public string clientId { get; set; } = "";
+      /// <summary>Client secret for service account</summary>
+      public string clientSecret { get; set; } = "";
+      /// <summary>Interval to refresh the resource cache</summary>
+      public int SyncInterval { get; set; } = 300; //seconds
     }
     /// <summary>Configurator</summary>
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder>
@@ -107,7 +110,6 @@ namespace Tlabs.Server.Auth
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg)
       {
         svcColl.Configure<Options>(cfg.GetSection("config"));
-        // svcColl.AddSingleton<IKeycloakTokenProvider, KeycloakTokenProvider>();
         svcColl.AddSingleton<KeycloakAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(KeycloakAuthorizationFilter));
       }

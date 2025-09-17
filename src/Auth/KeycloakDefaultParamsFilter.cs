@@ -14,8 +14,7 @@ using Tlabs.Server.Model;
 using System.Net.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
+using Tlabs.Data.Serialize.Json;
 
 namespace Tlabs.Server.Auth
 {
@@ -29,14 +28,15 @@ namespace Tlabs.Server.Auth
 
     readonly IKeycloakTokenProvider keycloakTokenProvider;
 
-    ConcurrentDictionary<string, List<string>> resourceAttributesCache = new();
+    readonly IKeycloakResourceService keycloakResourceService;
 
     ///<summary>Ctor from <paramref name="httpClientFactory"/>. </summary>
-    public KeycloakDefaultParamsFilter(IHttpClientFactory httpClientFactory, IKeycloakTokenProvider keycloakTokenProvider, IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions)
+    public KeycloakDefaultParamsFilter(IHttpClientFactory httpClientFactory, IKeycloakTokenProvider keycloakTokenProvider, IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions, IKeycloakResourceService keycloakResourceService)
     {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = keycloakOptions.Value;
       this.keycloakTokenProvider = keycloakTokenProvider;
+      this.keycloakResourceService = keycloakResourceService;
     }
 
     ///<inheritdoc/>
@@ -74,17 +74,22 @@ namespace Tlabs.Server.Auth
 
       var response = httpClientFactory.CreateClient().SendAsync(keycloakRequest).GetAwaiter().GetResult();
       var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-      var resources = System.Text.Json.JsonSerializer.Deserialize<List<KeycloakPermission>>(body);
+      var seri = JsonFormat.CreateSerializer<List<KeycloakResourceService.KeycloakResourceListItem>>();
 
+      var resources = seri.LoadObj(body);
+
+      if (null == resources || 0 == resources.Count)
+        return;
+      
       List<Data.Model.Role.EnforcedParameter?> rawForcedParams = new();
       foreach (var res in resources)
       {
-        var permissions = GetResourceAttributesAsync(res.rsid, saToken).GetAwaiter().GetResult();
+        var permissions = keycloakResourceService.GetResourceAttributesAsync(res.rsid).GetAwaiter().GetResult();
         if (null != permissions)
           foreach(var perm in permissions)
             rawForcedParams.Add(new Data.Model.Role.EnforcedParameter(perm));
       }
-      var forcedParams = rawForcedParams.FirstOrDefault(x => x.RouteRegex.Match(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "").Success);
+      var forcedParams = rawForcedParams.FirstOrDefault(x => x!.RouteRegex.Match(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "").Success);
 
 
       if (null == forcedParams) return;
@@ -126,64 +131,25 @@ namespace Tlabs.Server.Auth
       }
     }
 
-    private async Task<List<string>> GetResourceAttributesAsync(string resourceId, string accessToken)
-    {
-      if (resourceAttributesCache.TryGetValue(resourceId, out var cached)) return cached;
-
-      var client = httpClientFactory.CreateClient("keycloak-admin");
-      var keycloakRequest = new HttpRequestMessage(HttpMethod.Get,
-            $"{keycloakOptions.keycloakAuthority}/authz/protection/resource_set/{resourceId}");
-      keycloakRequest.Headers.Authorization =
-              new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-      var response = await client.SendAsync(keycloakRequest);
-      var body = await response.Content.ReadAsStringAsync();
-      var sjsonResp = System.Text.Json.JsonSerializer.Deserialize<KeycloakResource>(body);
-
-      var enforcedFilters = sjsonResp?.attributes?.TryGetValue("enforcedFilters", out var filters) ?? false
-          ? filters
-          : null;
-
-      resourceAttributesCache[resourceId] = enforcedFilters;
-      return enforcedFilters;
-    }
-
-    private class KeycloakPermission
-    {
-      public string rsname { get; set; }
-      public string rsid { get; set; }
-      public List<string> scopes { get; set; }
-      public Dictionary<string, string> Attributes { get; set; }
-    }
-
-    public class KeycloakResource
-    {
-      public string _id { get; set; }
-      public string name { get; set; }
-      public string displayName { get; set; }
-      public Dictionary<string, List<string>> attributes { get; set; }
-      public string type { get; set; }
-      public bool ownerManagedAccess { get; set; }
-      public List<string> uris { get; set; }
-      public List<Scope> resource_scopes { get; set; }
-      public Dictionary<string, string> owner { get; set; }
-      public List<Scope> scopes { get; set; }
-      public string icon_uri { get; set; }
-
-      public class Scope
-      {
-        public string name { get; set; }
-      }
-    }
-
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder>
+    public class Configurator : IConfigurator<MiddlewareContext>, IConfigurator<IServiceCollection>
     {
-      /// <inheritoc/>
+      /// <inheritdoc/>
+      public void AddTo(MiddlewareContext target, IConfiguration cfg)
+      {
+        Tlabs.App.WithServiceScope(svcProv =>
+        {
+          // Configure the ClockedRunner Operations - call ctor
+          svcProv.GetRequiredService<KeycloakParamsSynchronizator>();
+        });
+      }
+      /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg)
       {
         svcColl.AddSingleton<KeycloakDefaultParamsFilter>();
         svcColl.AddSingleton<IKeycloakTokenProvider, KeycloakTokenProvider>();
+        svcColl.AddSingleton<IKeycloakResourceService, KeycloakResourceService>();
+        svcColl.AddSingleton<KeycloakParamsSynchronizator>();
       }
       /// <inheritdoc/>
       public void AddTo(IWebHostBuilder hostBuilder, IConfiguration cfg)

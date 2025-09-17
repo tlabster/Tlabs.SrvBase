@@ -3,19 +3,22 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using Tlabs.Data.Serialize.Json;
 
 namespace Tlabs.Server.Auth
 {
+  /// <summary>
+  /// Service for obtaining and caching Keycloak service account token
+  /// </summary>
   public interface IKeycloakTokenProvider
   {
+    /// <summary>Get Keycloak service account token</summary>
     Task<string> GetServiceAccountTokenAsync();
   }
-
+  /// <inheritdoc/>
   public class KeycloakTokenProvider : IKeycloakTokenProvider
   {
     private readonly IHttpClientFactory httpClientFactory;
@@ -24,15 +27,18 @@ namespace Tlabs.Server.Auth
 
     private string? cachedToken;
     private DateTime expiresAt;
-
+    /// <summary>Ctor</summary>
     public KeycloakTokenProvider(IHttpClientFactory httpClientFactory, IOptions<KeycloakAuthorizationFilter.Options> options)
     {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = options.Value;
     }
-
+    /// <inheritdoc/>
     public async Task<string> GetServiceAccountTokenAsync()
     {
+      if (keycloakOptions == null)
+        throw new InvalidOperationException("Keycloak options are not configured.");
+
       if (!string.IsNullOrEmpty(cachedToken) && DateTime.UtcNow < expiresAt)
         return cachedToken;
 
@@ -56,18 +62,32 @@ namespace Tlabs.Server.Auth
 
         var resp = await client.SendAsync(req);
         resp.EnsureSuccessStatusCode();
-        var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        var token = json!.GetProperty("access_token").GetString();
-        var expiresIn = json.GetProperty("expires_in").GetInt32();
 
-        cachedToken = token;
-        expiresAt = DateTime.UtcNow.AddSeconds(expiresIn - 30);
-        return cachedToken!;
+        var seri = JsonFormat.CreateSerializer<TokenResponse>();
+
+        var tokenObj = seri.LoadObj(await resp.Content.ReadAsStringAsync());
+
+        if (tokenObj != null)
+        {
+          cachedToken = tokenObj.access_token;
+          expiresAt = DateTime.UtcNow.AddSeconds(tokenObj.expires_in - 30);
+          return cachedToken!;
+        }
+        throw new InvalidOperationException("Failed to obtain access token from Keycloak.");
       }
       finally
       {
         sLock.Release();
       }
+    }
+    
+    private class TokenResponse
+    {
+      public string access_token { get; set; } = "";
+      public int expires_in { get; set; }
+      public int refresh_expires_in { get; set; }
+      public string token_type { get; set; } = "";
+      public string scope { get; set; } = "";
     }
   }
 }
