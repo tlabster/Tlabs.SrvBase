@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 using Tlabs.Config;
+using Microsoft.Extensions.Logging;
 
 namespace Tlabs.Server.Url {
 
@@ -20,7 +21,7 @@ namespace Tlabs.Server.Url {
 
     ///<inheritdoc/>>
     public void OnActionExecuting(ActionExecutingContext ctx) {
-      foreach(var param in ctx.ActionDescriptor.Parameters.Where(p => BindingSource.Path == p.BindingInfo?.BindingSource
+      foreach (var param in ctx.ActionDescriptor.Parameters.Where(p => BindingSource.Path == p.BindingInfo?.BindingSource
                                                                         && typeof(string) == p.ParameterType
                                                                         && ctx.ActionArguments.ContainsKey(p.Name))) {
         var val= ctx.ActionArguments[param.Name] as string;

@@ -16,11 +16,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Tlabs.Data.Serialize.Json;
 
-namespace Tlabs.Server.Auth
-{
+namespace Tlabs.Server.Auth {
   ///<summary>Filter that </summary>
-  public class KeycloakDefaultParamsFilter : IActionFilter
-  {
+  public class KeycloakDefaultParamsFilter : IActionFilter {
     private static readonly ILogger log = Tlabs.App.Logger<KeycloakDefaultParamsFilter>();
     readonly IHttpClientFactory httpClientFactory;
 
@@ -31,8 +29,7 @@ namespace Tlabs.Server.Auth
     readonly IKeycloakResourceService keycloakResourceService;
 
     ///<summary>Ctor from <paramref name="httpClientFactory"/>. </summary>
-    public KeycloakDefaultParamsFilter(IHttpClientFactory httpClientFactory, IKeycloakTokenProvider keycloakTokenProvider, IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions, IKeycloakResourceService keycloakResourceService)
-    {
+    public KeycloakDefaultParamsFilter(IHttpClientFactory httpClientFactory, IKeycloakTokenProvider keycloakTokenProvider, IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions, IKeycloakResourceService keycloakResourceService) {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = keycloakOptions.Value;
       this.keycloakTokenProvider = keycloakTokenProvider;
@@ -40,16 +37,15 @@ namespace Tlabs.Server.Auth
     }
 
     ///<inheritdoc/>
-    public void OnActionExecuted(ActionExecutedContext context)
-    {
+    public void OnActionExecuted(ActionExecutedContext context) {
       // Empty
     }
 
     ///<inheritdoc/>
-    public void OnActionExecuting(ActionExecutingContext ctx)
-    {
+    public void OnActionExecuting(ActionExecutingContext ctx) {
       // Skip filter if header does not contain an api key or action is marked as anonymous
-      if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) { return; }
+      if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) return;
+
       var request = ctx.HttpContext.Request;
 
       request.Headers.TryGetValue("Authorization", out var authHeader);
@@ -58,8 +54,7 @@ namespace Tlabs.Server.Auth
 
       var saToken = keycloakTokenProvider.GetServiceAccountTokenAsync().GetAwaiter().GetResult(); // Get service account token
 
-      var keycloakRequest = new HttpRequestMessage(
-        HttpMethod.Post, $"{keycloakOptions.keycloakAuthority}/protocol/openid-connect/token")
+      var keycloakRequest = new HttpRequestMessage(HttpMethod.Post, $"{keycloakOptions.keycloakAuthority}/protocol/openid-connect/token")
       {
         Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -80,13 +75,12 @@ namespace Tlabs.Server.Auth
 
       if (null == resources || 0 == resources.Count)
         return;
-      
+
       List<Data.Model.Role.EnforcedParameter?> rawForcedParams = new();
-      foreach (var res in resources)
-      {
+      foreach (var res in resources) {
         var permissions = keycloakResourceService.GetResourceAttributesAsync(res.rsid).GetAwaiter().GetResult();
         if (null != permissions)
-          foreach(var perm in permissions)
+          foreach (var perm in permissions)
             rawForcedParams.Add(new Data.Model.Role.EnforcedParameter(perm));
       }
       var forcedParams = rawForcedParams.FirstOrDefault(x => x!.RouteRegex.Match(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "").Success);
@@ -95,21 +89,18 @@ namespace Tlabs.Server.Auth
       if (null == forcedParams) return;
 
       // Get parameter name from role
-      if (ctx.ActionDescriptor.Parameters.Count < forcedParams.Position)
-      {
+      if (ctx.ActionDescriptor.Parameters.Count < forcedParams.Position) {
         log.LogError("No parameter with index {pos} found in controller action {name}", forcedParams.Position, ctx.ActionDescriptor.DisplayName);
         return;
       }
 
       var paramDesc = ctx.ActionDescriptor.Parameters[forcedParams.Position];
 
-      foreach (var name in forcedParams.Values.Keys)
-      {
+      foreach (var name in forcedParams.Values.Keys) {
         var value = forcedParams.Values[name];
         var param = ctx.ActionArguments[paramDesc.Name];
 
-        if (param != null && param.GetType().IsGenericType && param.GetType().GetGenericTypeDefinition() == typeof(FilterParam<>))
-        {
+        if (param != null && param.GetType().IsGenericType && param.GetType().GetGenericTypeDefinition() == typeof(FilterParam<>)) {
           var filterListProperty = param.GetType().GetProperty("FilterList");
 
           var filterListValue = filterListProperty?.GetValue(param) as List<Filter>;
@@ -117,13 +108,11 @@ namespace Tlabs.Server.Auth
 
           var prop = enforcedFilters.FirstOrDefault(x => x.property == name);
 
-          if (null != prop && null != prop.value)
-          {
+          if (null != prop && null != prop.value) {
             // If user is filtering by this property with a different value, show him nothing
             prop.value = value.StartsWith(prop.value, StringComparison.OrdinalIgnoreCase) ? value : "#########";
           }
-          else
-          {
+          else {
             enforcedFilters.Add(new Filter { property = name, value = value });
           }
           filterListProperty?.SetValue(param, enforcedFilters);
@@ -132,20 +121,16 @@ namespace Tlabs.Server.Auth
     }
 
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<MiddlewareContext>, IConfigurator<IServiceCollection>
-    {
+    public class Configurator : IConfigurator<MiddlewareContext>, IConfigurator<IServiceCollection> {
       /// <inheritdoc/>
-      public void AddTo(MiddlewareContext target, IConfiguration cfg)
-      {
-        Tlabs.App.WithServiceScope(svcProv =>
-        {
+      public void AddTo(MiddlewareContext target, IConfiguration cfg) {
+        Tlabs.App.WithServiceScope(svcProv => {
           // Configure the ClockedRunner Operations - call ctor
           svcProv.GetRequiredService<KeycloakParamsSynchronizator>();
         });
       }
       /// <inheritdoc/>
-      public void AddTo(IServiceCollection svcColl, IConfiguration cfg)
-      {
+      public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.AddSingleton<KeycloakDefaultParamsFilter>();
         svcColl.AddSingleton<IKeycloakTokenProvider, KeycloakTokenProvider>();
         svcColl.AddSingleton<IKeycloakResourceService, KeycloakResourceService>();

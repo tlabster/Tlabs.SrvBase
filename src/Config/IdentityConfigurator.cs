@@ -14,33 +14,28 @@ using Tlabs.Data.Entity;
 using Tlabs.Identity;
 using Tlabs.Identity.Intern;
 
-namespace Tlabs.Config
-{
+namespace Tlabs.Config {
 
   ///<summary>Configures IdentiytFramework.</summary>
-  public class IdentityConfigurator : IConfigurator<IServiceCollection>
-  {
+  public class IdentityConfigurator : IConfigurator<IServiceCollection> {
     readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
     public IdentityConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public IdentityConfigurator(IDictionary<string, string>? config)
-    {
+    public IdentityConfigurator(IDictionary<string, string>? config) {
       this.config = config ?? new Dictionary<string, string>();
     }
 
     ///<inheritdoc/>
-    public void AddTo(IServiceCollection services, IConfiguration cfg)
-    {
+    public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log = App.Logger<IdentityConfigurator>();
 
       services.AddIdentity<User, Role>()
               .AddDefaultTokenProviders();
 
-      services.Configure<IdentityOptions>(options =>
-      {
+      services.Configure<IdentityOptions>(options => {
         // Password settings
         var pwOptions = new PasswordOptions();
         config.TryGetValue(nameof(pwOptions.RequireDigit), out var cfgStr);
@@ -69,43 +64,33 @@ namespace Tlabs.Config
         options.Lockout.MaxFailedAccessAttempts = 10;
       });
 
-      services.ConfigureApplicationCookie(options =>
-      {
-        if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null)
-        {
+      services.ConfigureApplicationCookie(options => {
+        if (config.TryGetValue("idleLogoffMinutes", out var cfgStr) && cfgStr != null) {
 #pragma warning disable CA1806  //use minutes default value
           Int32.TryParse(cfgStr, out var minutes);
 #pragma warning restore CA1806
-          if (minutes > 0)
-          {
+          if (minutes > 0) {
             options.SlidingExpiration = true;
             options.ExpireTimeSpan = new TimeSpan(0, minutes, 0);
           }
         }
-        options.Events = new CookieAuthenticationEvents
-        {
-          OnRedirectToAccessDenied = ctx =>
-          {
-            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK)
-            {
+        options.Events = new CookieAuthenticationEvents {
+          OnRedirectToAccessDenied = ctx => {
+            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
               ctx.Response.StatusCode = (int)HttpStatusCode.Forbidden;
               ctx.Response.ContentType = "application/json";
             }
-            else
-            {
+            else {
               ctx.Response.Redirect(ctx.RedirectUri);
             }
             return System.Threading.Tasks.Task.FromResult(0);
           },
-          OnRedirectToLogin = ctx =>
-          {
-            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK)
-            {
+          OnRedirectToLogin = ctx => {
+            if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
               ctx.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
               ctx.Response.ContentType = "application/json";
             }
-            else
-            {
+            else {
               ctx.Response.Redirect(ctx.RedirectUri);
             }
             return System.Threading.Tasks.Task.FromResult(0);
