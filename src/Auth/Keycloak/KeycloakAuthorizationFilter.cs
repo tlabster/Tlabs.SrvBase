@@ -16,34 +16,32 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 
 using Tlabs.Config;
 
-namespace Tlabs.Server.Auth
-{
+namespace Tlabs.Server.Auth.Keycloak {
   ///<summary>Authorization filter for Keycloak.</summary>
-  public class KeycloakAuthorizationFilter : IAsyncAuthorizationFilter
-  {
+  public class KeycloakAuthorizationFilter : IAsyncAuthorizationFilter {
     static readonly ILogger log = Tlabs.App.Logger<KeycloakAuthorizationFilter>();
     readonly Options authOptions;
+    readonly IKeycloakTokenService keycloakPermissionService;
 
-    readonly IHttpClientFactory httpClientFactory;
     ///<summary>Ctor from <paramref name="options"/> and <paramref name="httpClientFactory"/>.</summary>
     public KeycloakAuthorizationFilter(
       IOptions<Options> options,
-      IHttpClientFactory httpClientFactory)
-    {
+      IHttpClientFactory httpClientFactory,
+      IKeycloakTokenService keycloakPermissionService
+    ) {
       this.authOptions = options.Value;
-      this.httpClientFactory = httpClientFactory;
+      this.keycloakPermissionService = keycloakPermissionService;
     }
+
     ///<inheritdoc/>
-    public async Task OnAuthorizationAsync(AuthorizationFilterContext ctx)
-    {
+    public async Task OnAuthorizationAsync(AuthorizationFilterContext ctx) {
       // Skip filter if header does not contain an api key or action is marked as anonymous
       if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) { return; }
       var request = ctx.HttpContext.Request;
 
       // Extract Bearer token
       if (!request.Headers.TryGetValue("Authorization", out var authHeader) ||
-          !authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-      {
+          !authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
         Deny(ctx, "Missing or invalid Authorization header");
         return;
       }
@@ -53,63 +51,39 @@ namespace Tlabs.Server.Auth
       var resource = (ctx.ActionDescriptor.AttributeRouteInfo?.Template ?? request.Path).ToLowerInvariant();
       var scope = request.Method.ToLowerInvariant();
 
-      var client = httpClientFactory.CreateClient();
-
-      var keycloakRequest = new HttpRequestMessage(HttpMethod.Post,
-            $"{authOptions.keycloakAuthority}/protocol/openid-connect/token")
-      {
-        Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-          ["grant_type"] = "urn:ietf:params:oauth:grant-type:uma-ticket",
-          ["response_mode"] = "decision",
-          ["permission"] = $"{resource}#{scope}",
-          ["permission_resource_format"] = "uri",
-          ["permission_resource_matching_uri"] = "true",
-          ["audience"] = authOptions.keycloakAudience!,
-        })
-      };
-
-      keycloakRequest.Headers.Authorization =
-              new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-      var response = await client.SendAsync(keycloakRequest);
-      var body = await response.Content.ReadAsStringAsync();
-
-      if (!response.IsSuccessStatusCode || !body.Contains("\"result\":true"))
-      {
+      var authorized = await keycloakPermissionService.AuthorizeAsync(accessToken, resource, scope);
+      if (!authorized) {
         log.LogWarning("Unauthorized access to {Resource} with scope {Scope}", resource, scope);
         Deny(ctx, "Unauthorized Request");
       }
     }
 
-    private static void Deny(AuthorizationFilterContext ctx, string reason)
-    {
+    private static void Deny(AuthorizationFilterContext ctx, string reason) {
       var err = new JsonResult(new { success = false, error = reason });
       err.StatusCode = StatusCodes.Status403Forbidden;
       ctx.Result = err;
     }
 
     ///<summary>Keycloak options.</summary>
-    public class Options
-    {
+    public class Options {
       ///<summary>Keycloak authority URL.</summary>
-      public string keycloakAuthority { get; set; } = "";
+      public string KeycloakAuthority { get; set; } = "";
       ///<summary>Audience for Keycloak tokens.</summary>
-      public string keycloakAudience { get; set; } = "";
+      public string KeycloakAudience { get; set; } = "";
       /// <summary>Client ID for service account</summary>
-      public string clientId { get; set; } = "";
+      public string ClientId { get; set; } = "";
       /// <summary>Client secret for service account</summary>
-      public string clientSecret { get; set; } = "";
+      public string ClientSecret { get; set; } = "";
       /// <summary>Interval to refresh the resource cache</summary>
       public int SyncInterval { get; set; } = 300; //seconds
     }
+
     /// <summary>Configurator</summary>
-    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder>
-    {
+    public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
-      public void AddTo(IServiceCollection svcColl, IConfiguration cfg)
-      {
+      public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
         svcColl.Configure<Options>(cfg.GetSection("config"));
+        svcColl.AddSingleton<IKeycloakTokenService, KeycloakTokenService>();
         svcColl.AddSingleton<KeycloakAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(KeycloakAuthorizationFilter));
       }

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 using Tlabs.Data.Serialize.Json;
 
-namespace Tlabs.Server.Auth {
+namespace Tlabs.Server.Auth.Keycloak {
   /// <summary>
   /// Service for caching and retrieving Keycloak resource information
   /// </summary>
@@ -64,7 +64,7 @@ namespace Tlabs.Server.Auth {
       var client = httpClientFactory.CreateClient("keycloak-protection");
 
       // Get all resources uids using the Keycloak API
-      var resourceListRequest = new HttpRequestMessage(HttpMethod.Get, $"{keycloakOptions.keycloakAuthority}/authz/protection/resource_set");
+      var resourceListRequest = new HttpRequestMessage(HttpMethod.Get, $"{keycloakOptions.KeycloakAuthority}/authz/protection/resource_set");
       resourceListRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceAccountToken);
 
       var resourceListResponse = await client.SendAsync(resourceListRequest, ctk);
@@ -93,7 +93,7 @@ namespace Tlabs.Server.Auth {
 
       var client = httpClientFactory.CreateClient("keycloak-protection");
       var keycloakRequest = new HttpRequestMessage(HttpMethod.Get,
-        $"{keycloakOptions.keycloakAuthority}/authz/protection/resource_set/{resourceId}");
+        $"{keycloakOptions.KeycloakAuthority}/authz/protection/resource_set/{resourceId}");
       keycloakRequest.Headers.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -112,22 +112,6 @@ namespace Tlabs.Server.Auth {
         : new List<string>();
 
       return enforcedFilters;
-    }
-
-    /// <summary>Keycloak resource list item as returned by the Keycloak API</summary>
-    public class KeycloakResourceListItem {
-      /// <summary>
-      /// The resource name
-      /// </summary>
-      public string rsname { get; set; } = "";
-      /// <summary>
-      /// The resource ID
-      /// </summary>
-      public string rsid { get; set; } = "";
-      /// <summary>
-      /// The resource scopes
-      /// </summary>
-      public List<string> scopes { get; set; } = new();
     }
 
     private class KeycloakResource {

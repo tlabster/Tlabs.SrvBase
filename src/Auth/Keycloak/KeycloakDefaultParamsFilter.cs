@@ -15,34 +15,41 @@ using System.Net.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Tlabs.Data.Serialize.Json;
+using System.Threading.Tasks;
 
-namespace Tlabs.Server.Auth {
-  ///<summary>Filter that </summary>
-  public class KeycloakDefaultParamsFilter : IActionFilter {
+namespace Tlabs.Server.Auth.Keycloak {
+  ///<summary>Filter that applies default action parameters based on the authenticated user</summary>
+  public class KeycloakDefaultParamsFilter : IAsyncActionFilter {
     private static readonly ILogger log = Tlabs.App.Logger<KeycloakDefaultParamsFilter>();
     readonly IHttpClientFactory httpClientFactory;
-
     readonly KeycloakAuthorizationFilter.Options keycloakOptions;
-
     readonly IKeycloakTokenProvider keycloakTokenProvider;
-
     readonly IKeycloakResourceService keycloakResourceService;
+    readonly IKeycloakTokenService keycloakPermissionService;
 
     ///<summary>Ctor from <paramref name="httpClientFactory"/>. </summary>
-    public KeycloakDefaultParamsFilter(IHttpClientFactory httpClientFactory, IKeycloakTokenProvider keycloakTokenProvider, IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions, IKeycloakResourceService keycloakResourceService) {
+    public KeycloakDefaultParamsFilter(
+      IHttpClientFactory httpClientFactory,
+      IKeycloakTokenProvider keycloakTokenProvider,
+      IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions,
+      IKeycloakResourceService keycloakResourceService,
+      IKeycloakTokenService keycloakPermissionService
+    ) {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = keycloakOptions.Value;
       this.keycloakTokenProvider = keycloakTokenProvider;
       this.keycloakResourceService = keycloakResourceService;
+      this.keycloakPermissionService = keycloakPermissionService;
     }
 
     ///<inheritdoc/>
-    public void OnActionExecuted(ActionExecutedContext context) {
-      // Empty
+    public async Task OnActionExecutionAsync(ActionExecutingContext ctx, ActionExecutionDelegate next) {
+      await ApplyFilterParamsAsync(ctx);
+      await next();
+      // Nothing after action execution
     }
 
-    ///<inheritdoc/>
-    public void OnActionExecuting(ActionExecutingContext ctx) {
+    private async Task ApplyFilterParamsAsync(ActionExecutingContext ctx) {
       // Skip filter if header does not contain an api key or action is marked as anonymous
       if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) return;
 
@@ -52,26 +59,7 @@ namespace Tlabs.Server.Auth {
 
       var accessToken = authHeader.ToString()["Bearer ".Length..].Trim();
 
-      var saToken = keycloakTokenProvider.GetServiceAccountTokenAsync().GetAwaiter().GetResult(); // Get service account token
-
-      var keycloakRequest = new HttpRequestMessage(HttpMethod.Post, $"{keycloakOptions.keycloakAuthority}/protocol/openid-connect/token")
-      {
-        Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-          ["grant_type"] = "urn:ietf:params:oauth:grant-type:uma-ticket",
-          ["response_mode"] = "permissions",
-          ["audience"] = keycloakOptions.keycloakAudience,
-        })
-      };
-
-      keycloakRequest.Headers.Authorization =
-              new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-      var response = httpClientFactory.CreateClient().SendAsync(keycloakRequest).GetAwaiter().GetResult();
-      var body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-      var seri = JsonFormat.CreateSerializer<List<KeycloakResourceService.KeycloakResourceListItem>>();
-
-      var resources = seri.LoadObj(body);
+      var resources = await keycloakPermissionService.GetUserResourcesAsync(accessToken);
 
       if (null == resources || 0 == resources.Count)
         return;
@@ -84,7 +72,6 @@ namespace Tlabs.Server.Auth {
             rawForcedParams.Add(new Data.Model.Role.EnforcedParameter(perm));
       }
       var forcedParams = rawForcedParams.FirstOrDefault(x => x!.RouteRegex.Match(ctx.ActionDescriptor.AttributeRouteInfo?.Template?.ToLower(App.DfltFormat) ?? "").Success);
-
 
       if (null == forcedParams) return;
 

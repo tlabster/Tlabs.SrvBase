@@ -8,37 +8,31 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Http;
 
-namespace Tlabs.Config
-{
+namespace Tlabs.Config {
 
   ///<summary>Configures Identity Framework.</summary>
-  public class KeycloakIdentityConfigurator : IConfigurator<IServiceCollection>
-  {
+  public class KeycloakIdentityConfigurator : IConfigurator<IServiceCollection> {
     readonly IDictionary<string, string> config;
 
     ///<summary>Default ctor.</summary>
     public KeycloakIdentityConfigurator() : this(null) { }
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
-    public KeycloakIdentityConfigurator(IDictionary<string, string>? config)
-    {
+    public KeycloakIdentityConfigurator(IDictionary<string, string>? config) {
       this.config = config ?? new Dictionary<string, string>();
     }
 
     ///<inheritdoc/>
-    public void AddTo(IServiceCollection services, IConfiguration cfg)
-    {
+    public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log = App.Logger<KeycloakIdentityConfigurator>();
 
       services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-        {
+        .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options => {
           options.Authority = config["keycloakAuthority"];
           options.Audience = config["keycloakAudience"];
           options.RequireHttpsMetadata = false; // for dev only
 
-          options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-          {
+          options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
