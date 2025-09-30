@@ -19,14 +19,30 @@ namespace Tlabs.Server.Auth.Keycloak {
     /// <summary>
     /// The resource name
     /// </summary>
-    public string rsname { get; set; } = "";
+    public string Rsname { get; set; } = "";
     /// <summary>
     /// The resource ID
     /// </summary>
-    public string rsid { get; set; } = "";
+    public string Rsid { get; set; } = "";
     /// <summary>
     /// The resource scopes
     /// </summary>
-    public List<string> scopes { get; set; } = new();
+    public List<string> Scopes { get; set; } = new();
   }
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+  public class KeycloakClientConfig {
+    public string Authority { get; set; } = "";
+    public string Audience { get; set; } = "";
+    public string ClientId { get; set; } = "";
+    public string ClientSecret { get; set; } = "";
+    public string LogoutRedirect { get; set; } = "";
+    public bool RequireHttpsMetadata { get; set; } = true;
+    public int IdleLogoutMinutes { get; set; } = 30;
+  }
+
+  public class KeycloakConfig {
+    public KeycloakClientConfig Client { get; set; } = new();
+    public int SyncInterval { get; set; } = 300; //seconds
+  }
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 }

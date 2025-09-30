@@ -24,17 +24,17 @@ namespace Tlabs.Server.Auth.Keycloak {
   /// <summary>Implementation of a keycloak API Service</summary>
   public class KeycloakTokenService : IKeycloakTokenService {
     private readonly IHttpClientFactory httpClientFactory;
-    private readonly KeycloakAuthorizationFilter.Options keycloakOptions;
+    private readonly KeycloakConfig keycloakOptions;
     private readonly string tokenEndpoint;
 
     /// <summary>Constructor from <paramref name="httpClientFactory"/> and <paramref name="keycloakOptions"/></summary>
     public KeycloakTokenService(
       IHttpClientFactory httpClientFactory,
-      IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions
+      IOptions<KeycloakConfig> keycloakOptions
     ) {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = keycloakOptions.Value;
-      this.tokenEndpoint = $"{this.keycloakOptions.KeycloakAuthority}/protocol/openid-connect/token";
+      this.tokenEndpoint = $"{this.keycloakOptions.Client.Authority}/protocol/openid-connect/token";
     }
 
     /// <inheritdoc/>
@@ -44,7 +44,7 @@ namespace Tlabs.Server.Auth.Keycloak {
         {
           ["grant_type"] = "urn:ietf:params:oauth:grant-type:uma-ticket",
           ["response_mode"] = "permissions",
-          ["audience"] = keycloakOptions.KeycloakAudience,
+          ["audience"] = keycloakOptions.Client.Audience,
         })
       };
 
@@ -72,7 +72,7 @@ namespace Tlabs.Server.Auth.Keycloak {
           ["permission"] = $"{resource}#{scope}",
           ["permission_resource_format"] = "uri",
           ["permission_resource_matching_uri"] = "true",
-          ["audience"] = keycloakOptions.KeycloakAudience!,
+          ["audience"] = keycloakOptions.Client.Audience,
         })
       };
 
@@ -91,8 +91,8 @@ namespace Tlabs.Server.Auth.Keycloak {
     /// <summary>Refresh the token with <paramref name="refreshToken"/></summary>
     public async Task<TokenResponse> RefreshTokensAsync(string refreshToken) {
       var content = new FormUrlEncodedContent(new Dictionary<string, string> {
-            { "client_id", keycloakOptions.ClientId! },
-            { "client_secret", keycloakOptions.ClientSecret },
+            { "client_id", keycloakOptions.Client.ClientId! },
+            { "client_secret", keycloakOptions.Client.ClientSecret },
             { "grant_type", "refresh_token" },
             { "refresh_token", refreshToken }
         });

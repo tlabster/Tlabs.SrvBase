@@ -26,11 +26,15 @@ namespace Tlabs.Config {
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log = App.Logger<KeycloakIdentityConfigurator>();
 
+      var authority = cfg["config:client:Authority"] ?? throw new ArgumentNullException("Client Authority not configured");
+      var audience = cfg["config:client:Audience"] ?? throw new ArgumentNullException("Client Audience not configured");
+      var requireHttpsMetadata = bool.TryParse(cfg["config:client:RequireHttpsMetadata"], out var reqHttps) ? reqHttps : throw new ArgumentNullException("Client RequireHttpsMetadata not configured");
+
       services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options => {
-          options.Authority = config["keycloakAuthority"];
-          options.Audience = config["keycloakAudience"];
-          options.RequireHttpsMetadata = false; // for dev only
+          options.Authority = authority;
+          options.Audience = audience;
+          options.RequireHttpsMetadata = requireHttpsMetadata;
 
           options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters {
             ValidateIssuer = true,

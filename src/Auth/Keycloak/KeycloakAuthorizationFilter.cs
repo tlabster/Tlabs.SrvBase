@@ -20,16 +20,12 @@ namespace Tlabs.Server.Auth.Keycloak {
   ///<summary>Authorization filter for Keycloak.</summary>
   public class KeycloakAuthorizationFilter : IAsyncAuthorizationFilter {
     static readonly ILogger log = Tlabs.App.Logger<KeycloakAuthorizationFilter>();
-    readonly Options authOptions;
     readonly IKeycloakTokenService keycloakPermissionService;
 
-    ///<summary>Ctor from <paramref name="options"/> and <paramref name="httpClientFactory"/>.</summary>
+    ///<summary>Ctor.</summary>
     public KeycloakAuthorizationFilter(
-      IOptions<Options> options,
-      IHttpClientFactory httpClientFactory,
       IKeycloakTokenService keycloakPermissionService
     ) {
-      this.authOptions = options.Value;
       this.keycloakPermissionService = keycloakPermissionService;
     }
 
@@ -67,9 +63,9 @@ namespace Tlabs.Server.Auth.Keycloak {
     ///<summary>Keycloak options.</summary>
     public class Options {
       ///<summary>Keycloak authority URL.</summary>
-      public string KeycloakAuthority { get; set; } = "";
+      public string Authority { get; set; } = "";
       ///<summary>Audience for Keycloak tokens.</summary>
-      public string KeycloakAudience { get; set; } = "";
+      public string Audience { get; set; } = "";
       /// <summary>Client ID for service account</summary>
       public string ClientId { get; set; } = "";
       /// <summary>Client secret for service account</summary>
@@ -82,7 +78,7 @@ namespace Tlabs.Server.Auth.Keycloak {
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
-        svcColl.Configure<Options>(cfg.GetSection("config"));
+        svcColl.Configure<KeycloakConfig>(cfg.GetSection("config"));
         svcColl.AddSingleton<IKeycloakTokenService, KeycloakTokenService>();
         svcColl.AddSingleton<KeycloakAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(KeycloakAuthorizationFilter));

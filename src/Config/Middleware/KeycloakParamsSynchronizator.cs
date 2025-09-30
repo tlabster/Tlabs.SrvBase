@@ -11,11 +11,11 @@ namespace Tlabs.Server.Auth.Keycloak {
   /// to keep the local cache up to date.
   /// </summary>
   public class KeycloakParamsSynchronizator : IDisposable {
-    private readonly KeycloakAuthorizationFilter.Options keycloakOptions;
+    private readonly KeycloakConfig keycloakOptions;
     IKeycloakResourceService keycloakResourceService;
     readonly ClockedRunner? sendClk;
     /// <summary>Constructor</summary>
-    public KeycloakParamsSynchronizator(IOptions<KeycloakAuthorizationFilter.Options> options, IKeycloakResourceService keycloakResourceService) {
+    public KeycloakParamsSynchronizator(IOptions<KeycloakConfig> options, IKeycloakResourceService keycloakResourceService) {
       this.keycloakResourceService = keycloakResourceService;
       this.keycloakOptions = options.Value;
 

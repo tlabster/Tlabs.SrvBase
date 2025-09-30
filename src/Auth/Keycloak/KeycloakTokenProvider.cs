@@ -21,14 +21,14 @@ namespace Tlabs.Server.Auth.Keycloak {
   /// <inheritdoc/>
   public class KeycloakTokenProvider : IKeycloakTokenProvider {
     private readonly IHttpClientFactory httpClientFactory;
-    private readonly KeycloakAuthorizationFilter.Options keycloakOptions;
+    private readonly KeycloakConfig keycloakOptions;
     private readonly SemaphoreSlim sLock = new(1, 1);
 
     private string? cachedToken;
     private DateTime expiresAt;
 
     /// <summary>Ctor</summary>
-    public KeycloakTokenProvider(IHttpClientFactory httpClientFactory, IOptions<KeycloakAuthorizationFilter.Options> options) {
+    public KeycloakTokenProvider(IHttpClientFactory httpClientFactory, IOptions<KeycloakConfig> options) {
       this.httpClientFactory = httpClientFactory;
       this.keycloakOptions = options.Value;
     }
@@ -47,13 +47,13 @@ namespace Tlabs.Server.Auth.Keycloak {
 
         var client = httpClientFactory.CreateClient();
         var req = new HttpRequestMessage(HttpMethod.Post,
-            $"{keycloakOptions.KeycloakAuthority}/protocol/openid-connect/token")
+            $"{keycloakOptions.Client.Authority}/protocol/openid-connect/token")
         {
           Content = new FormUrlEncodedContent(new Dictionary<string, string>
           {
             ["grant_type"] = "client_credentials",
-            ["client_id"] = keycloakOptions.ClientId,
-            ["client_secret"] = keycloakOptions.ClientSecret
+            ["client_id"] = keycloakOptions.Client.ClientId,
+            ["client_secret"] = keycloakOptions.Client.ClientSecret
           })
         };
 

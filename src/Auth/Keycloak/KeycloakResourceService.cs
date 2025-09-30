@@ -27,7 +27,7 @@ namespace Tlabs.Server.Auth.Keycloak {
   /// <summary>Background service that caches Keycloak resources and provides access to resource attributes</summary>
   public class KeycloakResourceService : IKeycloakResourceService {
     private static readonly ILogger log = Tlabs.App.Logger<KeycloakResourceService>();
-    private readonly KeycloakAuthorizationFilter.Options keycloakOptions;
+    private readonly KeycloakConfig keycloakOptions;
     private readonly IKeycloakTokenProvider keycloakTokenProvider;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ConcurrentDictionary<string, List<string>> resourceAttributesCache = new();
@@ -36,7 +36,7 @@ namespace Tlabs.Server.Auth.Keycloak {
     public KeycloakResourceService(
       IKeycloakTokenProvider keycloakTokenProvider,
       IHttpClientFactory httpClientFactory,
-      IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions
+      IOptions<KeycloakConfig> keycloakOptions
     ) {
       this.keycloakOptions = keycloakOptions.Value;
       this.keycloakTokenProvider = keycloakTokenProvider;
@@ -64,7 +64,7 @@ namespace Tlabs.Server.Auth.Keycloak {
       var client = httpClientFactory.CreateClient("keycloak-protection");
 
       // Get all resources uids using the Keycloak API
-      var resourceListRequest = new HttpRequestMessage(HttpMethod.Get, $"{keycloakOptions.KeycloakAuthority}/authz/protection/resource_set");
+      var resourceListRequest = new HttpRequestMessage(HttpMethod.Get, $"{keycloakOptions.Client.Authority}/authz/protection/resource_set");
       resourceListRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceAccountToken);
 
       var resourceListResponse = await client.SendAsync(resourceListRequest, ctk);
@@ -93,7 +93,7 @@ namespace Tlabs.Server.Auth.Keycloak {
 
       var client = httpClientFactory.CreateClient("keycloak-protection");
       var keycloakRequest = new HttpRequestMessage(HttpMethod.Get,
-        $"{keycloakOptions.KeycloakAuthority}/authz/protection/resource_set/{resourceId}");
+        $"{keycloakOptions.Client.Authority}/authz/protection/resource_set/{resourceId}");
       keycloakRequest.Headers.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -107,7 +107,7 @@ namespace Tlabs.Server.Auth.Keycloak {
       var seri = JsonFormat.CreateSerializer<KeycloakResource>();
       var resource = seri.LoadObj(body);
 
-      var enforcedFilters = resource?.attributes?.TryGetValue("enforcedFilters", out var filters) ?? false
+      var enforcedFilters = resource?.Attributes?.TryGetValue("enforcedFilters", out var filters) ?? false
         ? filters
         : new List<string>();
 
@@ -116,19 +116,19 @@ namespace Tlabs.Server.Auth.Keycloak {
 
     private class KeycloakResource {
       public string _id { get; set; } = "";
-      public string name { get; set; } = "";
-      public string displayName { get; set; } = "";
-      public Dictionary<string, List<string>>? attributes { get; set; }
-      public string type { get; set; } = "";
-      public bool ownerManagedAccess { get; set; }
-      public List<string> uris { get; set; } = new();
-      public List<Scope> resource_scopes { get; set; } = new();
-      public Dictionary<string, string> owner { get; set; } = new();
-      public List<Scope> scopes { get; set; } = new();
-      public string icon_uri { get; set; } = "";
+      public string Name { get; set; } = "";
+      public string DisplayName { get; set; } = "";
+      public Dictionary<string, List<string>>? Attributes { get; set; }
+      public string Type { get; set; } = "";
+      public bool OwnerManagedAccess { get; set; }
+      public List<string> Uris { get; set; } = new();
+      public List<Scope> Resource_scopes { get; set; } = new();
+      public Dictionary<string, string> Owner { get; set; } = new();
+      public List<Scope> Scopes { get; set; } = new();
+      public string Icon_uri { get; set; } = "";
 
       public class Scope {
-        public string name { get; set; } = "";
+        public string Name { get; set; } = "";
       }
     }
   }

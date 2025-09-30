@@ -21,23 +21,14 @@ namespace Tlabs.Server.Auth.Keycloak {
   ///<summary>Filter that applies default action parameters based on the authenticated user</summary>
   public class KeycloakDefaultParamsFilter : IAsyncActionFilter {
     private static readonly ILogger log = Tlabs.App.Logger<KeycloakDefaultParamsFilter>();
-    readonly IHttpClientFactory httpClientFactory;
-    readonly KeycloakAuthorizationFilter.Options keycloakOptions;
-    readonly IKeycloakTokenProvider keycloakTokenProvider;
     readonly IKeycloakResourceService keycloakResourceService;
     readonly IKeycloakTokenService keycloakPermissionService;
 
-    ///<summary>Ctor from <paramref name="httpClientFactory"/>. </summary>
+    ///<summary>Ctor </summary>
     public KeycloakDefaultParamsFilter(
-      IHttpClientFactory httpClientFactory,
-      IKeycloakTokenProvider keycloakTokenProvider,
-      IOptions<KeycloakAuthorizationFilter.Options> keycloakOptions,
       IKeycloakResourceService keycloakResourceService,
       IKeycloakTokenService keycloakPermissionService
     ) {
-      this.httpClientFactory = httpClientFactory;
-      this.keycloakOptions = keycloakOptions.Value;
-      this.keycloakTokenProvider = keycloakTokenProvider;
       this.keycloakResourceService = keycloakResourceService;
       this.keycloakPermissionService = keycloakPermissionService;
     }
@@ -66,7 +57,7 @@ namespace Tlabs.Server.Auth.Keycloak {
 
       List<Data.Model.Role.EnforcedParameter?> rawForcedParams = new();
       foreach (var res in resources) {
-        var permissions = keycloakResourceService.GetResourceAttributesAsync(res.rsid).GetAwaiter().GetResult();
+        var permissions = keycloakResourceService.GetResourceAttributesAsync(res.Rsid).GetAwaiter().GetResult();
         if (null != permissions)
           foreach (var perm in permissions)
             rawForcedParams.Add(new Data.Model.Role.EnforcedParameter(perm));
