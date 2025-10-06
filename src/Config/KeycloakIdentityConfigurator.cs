@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication;
+using Tlabs.Server.Auth.Keycloak;
 
 namespace Tlabs.Config {
 
@@ -41,14 +43,16 @@ namespace Tlabs.Config {
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            NameClaimType = "preferred_username",
             ClockSkew = TimeSpan.FromMinutes(2)
           };
         });
 
       services.AddHttpClient();
 
-      log.LogInformation("AspNetCore.Identity services added");
       services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>(); //typically AddIdentity() already registers the accessor
+      services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
+      log.LogInformation("AspNetCore.Identity services added");
     }
   }
 }

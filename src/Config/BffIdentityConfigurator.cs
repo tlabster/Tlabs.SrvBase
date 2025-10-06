@@ -60,7 +60,6 @@ namespace Tlabs.Server.Config {
         options.ClientId = clientId;
         options.ClientSecret = clientSecret;
         options.ResponseType = OpenIdConnectResponseType.Code;
-        // Don't put token in cookie to avoid into FE
         options.SaveTokens = true;
 
         options.GetClaimsFromUserInfoEndpoint = true;
