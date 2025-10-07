@@ -25,39 +25,39 @@ namespace Tlabs.Config {
 
     ///<summary>Ctor from <paramref name="config"/>.</summary>
     public IdentityConfigurator(IDictionary<string, string>? config) {
-      this.config= config ?? new Dictionary<string, string>();
+      this.config = config ?? new Dictionary<string, string>();
     }
 
     ///<inheritdoc/>
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
-      var log= App.Logger<IdentityConfigurator>();
+      var log = App.Logger<IdentityConfigurator>();
 
       services.AddIdentity<User, Role>()
               .AddDefaultTokenProviders();
 
       services.Configure<IdentityOptions>(options => {
         // Password settings
-        var pwOptions= new PasswordOptions();
+        var pwOptions = new PasswordOptions();
         config.TryGetValue(nameof(pwOptions.RequireDigit), out var cfgStr);
-        pwOptions.RequireDigit= Boolean.Parse(cfgStr ?? "true");
+        pwOptions.RequireDigit = Boolean.Parse(cfgStr ?? "true");
 
         config.TryGetValue(nameof(pwOptions.RequiredLength), out cfgStr);
-        pwOptions.RequiredLength= int.Parse(cfgStr ?? "8", App.DfltFormat);
+        pwOptions.RequiredLength = int.Parse(cfgStr ?? "8", App.DfltFormat);
 
         config.TryGetValue(nameof(pwOptions.RequireLowercase), out cfgStr);
-        pwOptions.RequireLowercase= Boolean.Parse(cfgStr ?? "true");
+        pwOptions.RequireLowercase = Boolean.Parse(cfgStr ?? "true");
 
         config.TryGetValue(nameof(pwOptions.RequireNonAlphanumeric), out cfgStr);
-        pwOptions.RequireNonAlphanumeric= Boolean.Parse(cfgStr ?? "false");
+        pwOptions.RequireNonAlphanumeric = Boolean.Parse(cfgStr ?? "false");
 
         config.TryGetValue(nameof(pwOptions.RequireUppercase), out cfgStr);
-        pwOptions.RequireUppercase= Boolean.Parse(cfgStr ?? "false");
+        pwOptions.RequireUppercase = Boolean.Parse(cfgStr ?? "false");
 
-        options.Password= pwOptions;
+        options.Password = pwOptions;
 
         // User settings
         config.TryGetValue(nameof(options.User.RequireUniqueEmail), out cfgStr);
-        options.User.RequireUniqueEmail= Boolean.Parse(cfgStr ?? "false");
+        options.User.RequireUniqueEmail = Boolean.Parse(cfgStr ?? "false");
 
         // Lockout settings
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
@@ -70,12 +70,12 @@ namespace Tlabs.Config {
           Int32.TryParse(cfgStr, out var minutes);
 #pragma warning restore CA1806
           if (minutes > 0) {
-            options.SlidingExpiration= true;
-            options.ExpireTimeSpan= new TimeSpan(0, minutes, 0);
+            options.SlidingExpiration = true;
+            options.ExpireTimeSpan = new TimeSpan(0, minutes, 0);
           }
         }
-        options.Events= new CookieAuthenticationEvents {
-          OnRedirectToAccessDenied= ctx => {
+        options.Events = new CookieAuthenticationEvents {
+          OnRedirectToAccessDenied = ctx => {
             if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
               ctx.Response.StatusCode = (int)HttpStatusCode.Forbidden;
               ctx.Response.ContentType = "application/json";
@@ -85,7 +85,7 @@ namespace Tlabs.Config {
             }
             return System.Threading.Tasks.Task.FromResult(0);
           },
-          OnRedirectToLogin= ctx => {
+          OnRedirectToLogin = ctx => {
             if (ctx.Request.Path.StartsWithSegments("/api") && ctx.Response.StatusCode == (int)HttpStatusCode.OK) {
               ctx.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
               ctx.Response.ContentType = "application/json";

@@ -30,7 +30,7 @@ namespace Tlabs.Config {
 
   ///<summary>Configures debug pages middleware.</summary>
   public class DebugPagesConfigurator : IConfigurator<MiddlewareContext> {
-    readonly ILogger log= Tlabs.App.Logger<DebugPagesConfigurator>();
+    readonly ILogger log = Tlabs.App.Logger<DebugPagesConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
@@ -45,15 +45,54 @@ namespace Tlabs.Config {
 
   ///<summary>Configures ASPNET MVC middleware.</summary>
   public class MvcMiddlewareConfigurator : IConfigurator<MiddlewareContext> {
-    readonly ILogger log= Tlabs.App.Logger<MvcMiddlewareConfigurator>();
+    readonly ILogger log = Tlabs.App.Logger<MvcMiddlewareConfigurator>();
 
     ///<inheritdoc/>
     public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
-      var appBuilder= mware.AppBuilder;
+      var appBuilder = mware.AppBuilder;
       appBuilder.UseRouting();
       appBuilder.UseAuthentication();
-      appBuilder.UseEndpoints(endppints => endppints.MapControllers());
+      appBuilder.UseEndpoints(endpoints => endpoints.MapControllers());
       log.LogInformation("MVC middleware configured");
+    }
+  }
+
+  ///<summary>Configures ASPNET authentication middleware.</summary>
+  /// <remarks>
+  /// Is created to allow middleware access to HttpContext.User before MVC
+  /// Otherwise the User object would always be empty in custom middlewares
+  /// placed before the MVC middleware.
+  /// Is a pre-requisite to <see cref="EndpointsMiddlewareConfigurator"/>
+  /// and should be placed before it in the middleware chain.
+  /// </remarks>
+  public class AuthenticationMiddlewareConfigurator : IConfigurator<MiddlewareContext> {
+    readonly ILogger log = Tlabs.App.Logger<AuthenticationMiddlewareConfigurator>();
+
+    ///<inheritdoc/>
+    public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
+      var appBuilder = mware.AppBuilder;
+      appBuilder.UseAuthentication();
+      log.LogInformation("Authentication middleware configured");
+    }
+  }
+
+  ///<summary>Configures ASPNET Endpoints middleware.</summary>
+  /// <remarks>
+  /// Is created to allow middleware access to HttpContext.User before MVC
+  /// Otherwise the User object would always be empty in custom middlewares
+  /// placed before the MVC middleware.
+  /// Is a follow-up to <see cref="AuthenticationMiddlewareConfigurator"/>
+  /// and should be placed after it in the middleware chain.
+  /// </remarks>
+  public class EndpointsMiddlewareConfigurator : IConfigurator<MiddlewareContext> {
+    readonly ILogger log = Tlabs.App.Logger<EndpointsMiddlewareConfigurator>();
+
+    ///<inheritdoc/>
+    public void AddTo(MiddlewareContext mware, IConfiguration cfg) {
+      var appBuilder = mware.AppBuilder;
+      appBuilder.UseRouting();
+      appBuilder.UseEndpoints(endpoints => endpoints.MapControllers());
+      log.LogInformation("Endpoints middleware configured");
     }
   }
 
