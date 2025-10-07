@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Tlabs.Data.Serialize;
 
@@ -67,11 +68,12 @@ namespace Tlabs.Server.Auth.Opa {
     static readonly ILogger log = Tlabs.App.Logger<OpaClient>();
 
     /// <summary>
-    /// Creator from <paramref name="httpClientFactory"/>, <paramref name="serializer"/> and <paramref name="config"/>
+    /// Creator from <paramref name="httpClientFactory"/>, <paramref name="serializer"/> and <paramref name="configOptions"/>
     /// </summary>
-    public OpaClient(IHttpClientFactory httpClientFactory, IDynamicSerializer serializer, OpaClientConfig config) {
+    public OpaClient(IHttpClientFactory httpClientFactory, IDynamicSerializer serializer, IOptions<OpaClientConfig> configOptions) {
       this.serializer = serializer;
       this.httpClientFactory = httpClientFactory;
+      var config = configOptions.Value;
       policyPath = $"{config.OpaUri.TrimEnd('/')}{config.PolicyPath}";
     }
 

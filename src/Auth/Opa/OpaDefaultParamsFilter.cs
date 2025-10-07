@@ -64,7 +64,6 @@ namespace Tlabs.Server.Auth.Opa {
             forcedParams.Add(kv[0], kv[1]);
           }
 
-
           foreach (var name in forcedParams.Keys) {
             var value = forcedParams[name];
             var param = ctx.ActionArguments[paramDesc.Name];
