@@ -32,8 +32,7 @@ namespace Tlabs.Server.Auth.Opa {
 
     ///<inheritdoc/>
     public async Task OnAuthorizationAsync(AuthorizationFilterContext ctx) {
-      // Skip filter if header does not contain an api key or action is marked as anonymous
-      if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) { return; }
+      if (ctx.IsAnonymous()) return;
       if (ctx.HttpContext.User.Identity?.IsAuthenticated == false) {
         Deny(ctx, "Unauthorized request", StatusCodes.Status403Forbidden);
         return;

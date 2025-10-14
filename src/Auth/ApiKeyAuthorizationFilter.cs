@@ -31,14 +31,12 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public Task OnAuthorizationAsync(AuthorizationFilterContext ctx) {
       // Skip filter if header does not contain an api key or action is marked as anonymous
-      if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) { return Task.CompletedTask; }
+      if (ctx.IsAnonymous()) { return Task.CompletedTask; }
       if (!ctx.HttpContext.Request.Headers.TryGetValue(HEADER_AUTH_KEY, out var authorize)) { return Task.CompletedTask; }
 
       var route= ctx.ActionDescriptor.AttributeRouteInfo?.Template;
       string? key= BaseAuthFilter.ParseAuthorizationKey(authorize);
-      if (   null != route
-          && pathPattern.IsMatch(route)
-          && null == key || key != authOptions.masterKey) {
+      if (null != route && pathPattern.IsMatch(route) && null == key || key != authOptions.masterKey) {
         log.LogInformation("Unauthorized access: {path}", ctx.HttpContext.Request.Path);
 
         var err= new JsonResult(new {

@@ -35,10 +35,7 @@ namespace Tlabs.Server.Auth.Opa {
       return;
     }
 
-    private void ApplyFilterParams(ActionExecutingContext ctx) {
-      // Skip filter if header does not contain an api key or action is marked as anonymous
-      if (ctx.Filters.Any(item => item is IAllowAnonymousFilter)) return;
-
+    private static void ApplyFilterParams(ActionExecutingContext ctx) {
       var request = ctx.HttpContext.Request;
       if (ctx.HttpContext.Items.TryGetValue("OpaEnforcedFilter", out var filter) && filter is string enforcedFilter) {
         if (enforcedFilter != null && enforcedFilter.Contains('>')) {
