@@ -64,7 +64,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to forbidden</summary>
     protected void setForbidden(AuthorizationFilterContext ctx) {
-      if (ctx.IsAnonymous()) return;
+      if (ctx.HttpContext.IsAnonymous()) return;
       log.LogInformation("Forbidden access: {path}", ctx.HttpContext.Request.Path);
 
       var err= new JsonResult(new {
@@ -77,7 +77,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to unauthorized</summary>
     protected void setUnauthorized(AuthorizationFilterContext ctx) {
-      if (ctx.IsAnonymous()) return;
+      if (ctx.HttpContext.IsAnonymous()) return;
       log.LogInformation("Unauthorized access: {path}", ctx.HttpContext.Request.Path);
       var err= new JsonResult(new {
         success= false,

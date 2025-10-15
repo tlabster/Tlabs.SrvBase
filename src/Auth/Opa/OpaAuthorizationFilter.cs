@@ -32,7 +32,7 @@ namespace Tlabs.Server.Auth.Opa {
 
     ///<inheritdoc/>
     public async Task OnAuthorizationAsync(AuthorizationFilterContext ctx) {
-      if (ctx.IsAnonymous()) return;
+      if (ctx.HttpContext.IsAnonymous()) return;
       if (ctx.HttpContext.User.Identity?.IsAuthenticated == false) {
         Deny(ctx, "Unauthorized request", StatusCodes.Status403Forbidden);
         return;

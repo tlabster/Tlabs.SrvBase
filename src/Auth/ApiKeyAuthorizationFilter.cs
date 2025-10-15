@@ -31,7 +31,7 @@ namespace Tlabs.Server.Auth {
     ///<inheritdoc/>
     public Task OnAuthorizationAsync(AuthorizationFilterContext ctx) {
       // Skip filter if header does not contain an api key or action is marked as anonymous
-      if (ctx.IsAnonymous()) { return Task.CompletedTask; }
+      if (ctx.HttpContext.IsAnonymous()) { return Task.CompletedTask; }
       if (!ctx.HttpContext.Request.Headers.TryGetValue(HEADER_AUTH_KEY, out var authorize)) { return Task.CompletedTask; }
 
       var route= ctx.ActionDescriptor.AttributeRouteInfo?.Template;

@@ -36,7 +36,7 @@ namespace Tlabs.Server.Auth.Opa {
     }
 
     private static void ApplyFilterParams(ActionExecutingContext ctx) {
-      var request = ctx.HttpContext.Request;
+      if (ctx.HttpContext.IsAnonymous()) return;
       if (ctx.HttpContext.Items.TryGetValue("OpaEnforcedFilter", out var filter) && filter is string enforcedFilter) {
         if (enforcedFilter != null && enforcedFilter.Contains('>')) {
           var parts = enforcedFilter.Split(">");

@@ -18,7 +18,7 @@ namespace Tlabs.Server.Auth {
     /// <inheritoc/>
     public override void OnAuthorization(AuthorizationFilterContext context) {
       try {
-        if (context.IsAnonymous() || 0 != context.HttpContext.Request.Headers[HEADER_AUTH_KEY].Count) return;
+        if (context.HttpContext.IsAnonymous() || 0 != context.HttpContext.Request.Headers[HEADER_AUTH_KEY].Count) return;
 
         var idSrvc= (Tlabs.Identity.IIdentityAccessor)App.ServiceProv.GetRequiredService(typeof(Tlabs.Identity.IIdentityAccessor));
         if (idSrvc.Name == null) {
