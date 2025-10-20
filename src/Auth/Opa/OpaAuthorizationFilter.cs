@@ -54,7 +54,7 @@ namespace Tlabs.Server.Auth.Opa {
       };
 
       var cancellationToken = ctx.HttpContext.RequestAborted;
-      var authorized = await opaClient.EvaluateAsync<string>(input, cancellationToken);
+      var authorized = await opaClient.EvaluateDecisionAsync<string>(input, cancellationToken);
       if (!authorized.Allow) {
         log.LogWarning("Unauthorized access to {Resource} with scope {Scope}", actionName, request.Method);
         Deny(ctx, "Forbidden access", StatusCodes.Status403Forbidden);
@@ -71,14 +71,22 @@ namespace Tlabs.Server.Auth.Opa {
       ctx.Result = err;
     }
 
-    /// <summary>Configurator</summary>
+    /// <summary>Configures the OpaAuthorizationFilter</summary>
+    /// <remarks>This configurator also configures the OpaClient</remarks>
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
+        var config = cfg.GetSection("config");
+        svcColl.Configure<OpaClientConfig>(config);
+        var uri = config["OpaUri"]?.TrimEnd('/') ?? "http://localhost:8181";
+        svcColl.AddHttpClient("Opa", httpClient => {
+          httpClient.BaseAddress = new Uri(uri);
+        });
         svcColl.AddSingleton<IOpaClient, OpaClient>();
+
         svcColl.AddSingleton<OpaAuthorizationFilter>();
         svcColl.AddSingleton<OpaDefaultParamsFilter>();
-        svcColl.Configure<OpaClientConfig>(cfg.GetSection("config"));
+
         log.LogInformation("Service {s} added.", nameof(OpaAuthorizationFilter));
       }
       /// <inheritdoc/>
