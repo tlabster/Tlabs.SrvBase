@@ -190,7 +190,6 @@ namespace Tlabs.Server.Auth.Opa {
         var config = cfg.GetSection("config");
         services.Configure<OpaClientConfig>(config);
         var uri = config["OpaUri"]?.TrimEnd('/') ?? "http://localhost:8181";
-        // Use a single constant for the named HTTP client so it can be reused across the class
         services.AddHttpClient(OpaHttpClientName, httpClient => {
           httpClient.BaseAddress = new Uri(uri);
         });
