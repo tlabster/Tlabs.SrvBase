@@ -67,7 +67,7 @@ namespace Tlabs.Server.Auth.Opa {
     /// <summary>
     /// Evaluate an OPA policy with a generic <typeparamref name="TResponse"/> with a <paramref name="path"/> and a given <paramref name="input"/>
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The <typeparamref name="TResponse"/> resulting of the policies evaluation</returns>
     Task<TResponse?> EvaluateAsync<TResponse>(string path, OpaInput input, CancellationToken cancellationToken = default);
     /// <summary>
     /// Evaluate an <see cref="OpaDecision{TConstraints}"/>
@@ -80,9 +80,10 @@ namespace Tlabs.Server.Auth.Opa {
     /// Evaluate a decision on a specific path
     /// </summary>
     /// <typeparam name="TConstraints">Type of the constraints part of the response</typeparam>
+    /// <param name="input">Input object for the OPA Policy</param>
     /// <param name="path">Path of the policy to be evaluated</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The <see cref="OpaDecision{TConstraints}"/> resulting of the policies evaluation</returns>
     Task<OpaDecision<TConstraints?>> EvaluateDecisionAsync<TConstraints>(string path, OpaInput input, CancellationToken cancellationToken = default);
   }
 
