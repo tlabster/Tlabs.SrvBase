@@ -2,17 +2,30 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Reflection.Emit;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Tlabs.Config;
 using Tlabs.Data.Serialize;
+using Tlabs.Data.Serialize.Json;
+using Tlabs.Server.Auth.Keycloak;
 
 namespace Tlabs.Server.Auth.Opa {
+  /// <summary>
+  /// Result from evaluating an OPA policy
+  /// </summary>
+  /// <typeparam name="TResult">Type of the result object</typeparam>
+  public class OpaResult<TResult> {
+    /// <summary> Result of the OPA evaluation </summary>
+    public TResult? Result { get; set; }
+  }
+
   /// <summary>
   /// Class describing a decision from the OPA Middleware
   /// </summary>
@@ -52,64 +65,139 @@ namespace Tlabs.Server.Auth.Opa {
   /// <summary>Interface of a client for the OPA Service</summary>
   public interface IOpaClient {
     /// <summary>
+    /// Evaluate an OPA policy with a generic <typeparamref name="TResponse"/> with a <paramref name="path"/> and a given <paramref name="input"/>
+    /// </summary>
+    /// <returns>The <typeparamref name="TResponse"/> resulting of the policies evaluation</returns>
+    Task<TResponse?> EvaluateAsync<TResponse>(string path, OpaInput input, CancellationToken cancellationToken = default);
+    /// <summary>
     /// Evaluate an <see cref="OpaDecision{TConstraints}"/>
     /// </summary>
-    /// <param name="input">Input object for the opa Policy</param>
+    /// <param name="input">Input object for the OPA Policy</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The <see cref="OpaDecision{TConstraints}"/> resulting of the policies evaluation</returns>
-    Task<OpaDecision<TConstraints?>> EvaluateAsync<TConstraints>(OpaInput input, CancellationToken cancellationToken = default);
+    Task<OpaDecision<TConstraints?>> EvaluateDecisionAsync<TConstraints>(OpaInput input, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Evaluate a decision on a specific path
+    /// </summary>
+    /// <typeparam name="TConstraints">Type of the constraints part of the response</typeparam>
+    /// <param name="input">Input object for the OPA Policy</param>
+    /// <param name="path">Path of the policy to be evaluated</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The <see cref="OpaDecision{TConstraints}"/> resulting of the policies evaluation</returns>
+    Task<OpaDecision<TConstraints?>> EvaluateDecisionAsync<TConstraints>(string path, OpaInput input, CancellationToken cancellationToken = default);
   }
 
   /// <summary>Implementation of an OPA Client</summary>
   public class OpaClient : IOpaClient {
     private readonly IHttpClientFactory httpClientFactory;
-    private readonly string policyPath;
-    private readonly IDynamicSerializer serializer;
+    private readonly string defaultPolicyPath;
+    private const string OpaHttpClientName = "Opa";
     static readonly ILogger log = Tlabs.App.Logger<OpaClient>();
 
     /// <summary>
-    /// Creator from <paramref name="httpClientFactory"/>, <paramref name="serializer"/> and <paramref name="configOptions"/>
+    /// Creator from <paramref name="httpClientFactory"/> and <paramref name="configOptions"/>
     /// </summary>
-    public OpaClient(IHttpClientFactory httpClientFactory, IDynamicSerializer serializer, IOptions<OpaClientConfig> configOptions) {
-      this.serializer = serializer;
+    public OpaClient(IHttpClientFactory httpClientFactory, IOptions<OpaClientConfig> configOptions) {
       this.httpClientFactory = httpClientFactory;
       var config = configOptions.Value;
-      policyPath = $"{config.OpaUri.TrimEnd('/')}{config.PolicyPath}";
+      defaultPolicyPath = config.DefaultPolicyPath;
     }
 
     /// <inheritdoc/>
-    public async Task<OpaDecision<TConstraints?>> EvaluateAsync<TConstraints>(OpaInput input, CancellationToken cancellationToken = default) {
-      var httpClient = httpClientFactory.CreateClient();
+    public async Task<TResponse?> EvaluateAsync<TResponse>(string path, OpaInput input, CancellationToken cancellationToken = default) {
+      var response = await QueryPolicy(path, input, cancellationToken);
+
+      if (response == null) {
+        log.LogCritical("Error querying policy on {path}: no response", path);
+        return default;
+      }
+
+      var seri = JsonFormat.CreateSerializer<OpaResult<TResponse>>();
+      log.LogDebug("Path: {path}", path);
+      log.LogDebug("Response from OPA: {response}", response);
+      OpaResult<TResponse>? opaResult = default;
+      try {
+        opaResult = seri.LoadObj(response);
+      }
+      catch (Exception ex) {
+        log.LogCritical(ex, "Error querying policy on {path}: empty result", path);
+        return default;
+      }
+
+      if (opaResult == null || opaResult.Result == null) {
+        log.LogCritical("Error querying policy on {path}: invalid result {doc}", path, response);
+        return default;
+      }
+
+      return opaResult.Result;
+    }
+
+    /// <inheritdoc/>
+    public async Task<OpaDecision<TConstraints?>> EvaluateDecisionAsync<TConstraints>(OpaInput input, CancellationToken cancellationToken = default) {
+      return await EvaluateDecisionAsync<TConstraints>(defaultPolicyPath, input, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task<OpaDecision<TConstraints?>> EvaluateDecisionAsync<TConstraints>(string path, OpaInput input, CancellationToken cancellationToken = default) {
+      var response = await QueryPolicy(path, input, cancellationToken);
+
+      if (response == null) {
+        log.LogCritical("Error querying policy on {path}: no response", defaultPolicyPath);
+        return new OpaDecision<TConstraints?> { Allow = false };
+      }
+
+      var seri = JsonFormat.CreateSerializer<OpaResult<OpaDecision<TConstraints?>>>();
+      OpaResult<OpaDecision<TConstraints?>>? opaResult = null;
+      try {
+        opaResult = seri.LoadObj(response);
+      }
+      catch (Exception ex) {
+        log.LogCritical(ex, "Error querying policy on {path}: empty result", defaultPolicyPath);
+        return new OpaDecision<TConstraints?> { Allow = false };
+      }
+
+      if (opaResult == null || opaResult.Result == null) {
+        log.LogCritical("Error querying policy on {path}: invalid result {doc}", defaultPolicyPath, response);
+        return new OpaDecision<TConstraints?> { Allow = false };
+      }
+
+      return opaResult.Result;
+    }
+
+    private async Task<string?> QueryPolicy(string path, OpaInput input, CancellationToken cancellationToken) {
+      var httpClient = httpClientFactory.CreateClient(OpaHttpClientName);
       var request = new Dictionary<string, OpaInput> { { "input", input } };
 
-      var msgBytes = serializer.WriteObj(request);
+      var requestSerializer = JsonFormat.CreateSerializer<Dictionary<string, OpaInput>>();
+      var msgBytes = requestSerializer.WriteObj(request);
       var content = new ByteArrayContent(msgBytes);
       content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-      var response = await httpClient.PostAsync(policyPath, content, cancellationToken);
+      var response = await httpClient.PostAsync(path, content, cancellationToken);
       var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-
-      if (!response.IsSuccessStatusCode) {
+      if (!response.IsSuccessStatusCode || responseContent == null) {
         log.LogCritical("Error querying policy on {path} with status: `{status}` and response: {content}",
-                        policyPath, response.StatusCode, content);
-        return new OpaDecision<TConstraints?> { Allow = false };
+                        path, response.StatusCode, content);
+        return null;
       }
 
-      using var doc = JsonDocument.Parse(responseContent);
-      if (!doc.RootElement.TryGetProperty("result", out var result)) {
-        log.LogCritical("Error querying policy on {path}: invalid result {doc}", policyPath, doc);
-        return new OpaDecision<TConstraints?> { Allow = false };
+      return responseContent;
+    }
+
+    /// <summary>Configures the OPA Client to be used individually</summary>
+    public class Configurator : IConfigurator<IServiceCollection> {
+      /// <inheritdoc/>
+      public void AddTo(IServiceCollection services, IConfiguration cfg) {
+        var config = cfg.GetSection("config");
+        services.Configure<OpaClientConfig>(config);
+        var uri = config["OpaUri"]?.TrimEnd('/') ?? "http://localhost:8181";
+        services.AddHttpClient(OpaHttpClientName, httpClient => {
+          httpClient.BaseAddress = new Uri(uri);
+        });
+        services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
+        services.AddSingleton<IOpaClient, OpaClient>();
+        log.LogInformation("Service {s} added.", nameof(OpaClient));
       }
-
-      var decision = new OpaDecision<TConstraints?>
-      {
-        Allow = result.GetProperty("allow").GetBoolean(),
-        Constraints = result.TryGetProperty("constraints", out var constraints)
-                ? JsonSerializer.Deserialize<TConstraints>(constraints.GetRawText())
-                : default
-      };
-
-      return decision;
     }
   }
 }

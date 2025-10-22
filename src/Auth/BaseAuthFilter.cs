@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,18 +39,6 @@ namespace Tlabs.Server.Auth {
       return key;
     }
 
-    ///<summary>Checks if the current request is allowed for anonymous</summary>
-    protected bool isAnonymous(AuthorizationFilterContext context) {
-      /* When doing endpoint routing, MVC does not add AllowAnonymousFilters for AllowAnonymousAttributes that
-        * were discovered on controllers and actions.
-        * As a workaround we check for the presence of IAllowAnonymous in endpoint metadata.
-        * (https://docs.microsoft.com/en-us/dotnet/core/compatibility/aspnetcore#authorization-iallowanonymous-removed-from-authorizationfiltercontextfilters)
-        * Skip filter if header is marked as anonymous or apiKey was provided and filter did not short circuit the pipeline
-        */
-      var endPoint= context.HttpContext.GetEndpoint();
-      return null != endPoint?.Metadata?.GetMetadata<IAllowAnonymous>();
-    }
-
     ///<summary>Checks if any of the given roles has access to the current URL</summary>
     protected bool checkRoles(IEnumerable<string>? currentRoles, AuthorizationFilterContext context) {
       if (null != currentRoles) {
@@ -75,7 +64,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to forbidden</summary>
     protected void setForbidden(AuthorizationFilterContext ctx) {
-      if(isAnonymous(ctx)) return;
+      if (ctx.HttpContext.IsAnonymous()) return;
       log.LogInformation("Forbidden access: {path}", ctx.HttpContext.Request.Path);
 
       var err= new JsonResult(new {
@@ -88,7 +77,7 @@ namespace Tlabs.Server.Auth {
 
     ///<summary>Set result to unauthorized</summary>
     protected void setUnauthorized(AuthorizationFilterContext ctx) {
-      if(isAnonymous(ctx)) return;
+      if (ctx.HttpContext.IsAnonymous()) return;
       log.LogInformation("Unauthorized access: {path}", ctx.HttpContext.Request.Path);
       var err= new JsonResult(new {
         success= false,
