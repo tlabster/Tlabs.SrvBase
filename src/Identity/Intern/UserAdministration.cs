@@ -69,7 +69,7 @@ namespace Tlabs.Identity.Intern {
     }
 
     ///<inheritdoc/>
-    public IResultList<Data.Model.User> FilteredList(QueryFilter? filter= null) {
+    public IResultList<Data.Model.User> FilteredList(QueryFilter? filter = null) {
       filter??= new QueryFilter();
 
       var query= loadUser(filter.Apply(userManager.Users, userFilterMap, userSorterMap));
@@ -96,7 +96,7 @@ namespace Tlabs.Identity.Intern {
        */
       Data.Entity.User? usr= null;
       var userName= principal?.Identity?.Name;
-      if (! string.IsNullOrEmpty(userName) && null != (usr= tryGetByName(userName)))
+      if (!string.IsNullOrEmpty(userName) && null != (usr= tryGetByName(userName)))
         return new Data.Model.User(usr);      //return user with role information
 
 #if DEBUG
@@ -126,7 +126,7 @@ namespace Tlabs.Identity.Intern {
       ArgumentNullException.ThrowIfNull(user.Username);
       var entUsr= user.CopyTo(getByName(user.Username), locRepo);   //copy/merge to entity
       ArgumentNullException.ThrowIfNull(entUsr.UserName);
-      if (! string.IsNullOrEmpty(user.Password)) {
+      if (!string.IsNullOrEmpty(user.Password)) {
         var token= userManager.GeneratePasswordResetTokenAsync(entUsr).GetAwaiter().GetResult();
         throwOnIdentiyError(
           userManager.ResetPasswordAsync(entUsr, token, user.Password).GetAwaiter().GetResult(),
@@ -144,7 +144,7 @@ namespace Tlabs.Identity.Intern {
     }
 
     void assignRoles(Data.Entity.User usrEnt, IEnumerable<string>? usrRoles) {
-      if(usrRoles == null)
+      if (usrRoles == null)
         return;
 
       var existingRefs= store.Query<Data.Entity.User.RoleRef>()
@@ -188,7 +188,7 @@ namespace Tlabs.Identity.Intern {
       if (LoginResult.SUCCESS != (res= userCanLogin(userName, out var user))) return res;
       if (null == user) return LoginResult.FAILED;
 
-      if (! (await signInManager.CheckPasswordSignInAsync(user, pwd, false)).Succeeded) {
+      if (!(await signInManager.CheckPasswordSignInAsync(user, pwd, false)).Succeeded) {
         var failed= failedLogins[userName, () => new FailedLogin()].Increment();
         log.LogInformation("{cnt} consecutive failed login(s) for user {usr}", failed.Count, userName);
         //TODO: Raise failed login event
@@ -265,7 +265,7 @@ namespace Tlabs.Identity.Intern {
       if (LoginResult.SUCCESS != (res= userCanLogin(userName, out var user))) return res;
       if (null == user) return LoginResult.FAILED;
 
-      if (! await isValidSecondFactor(user, token)) return LoginResult.FAILED;
+      if (!await isValidSecondFactor(user, token)) return LoginResult.FAILED;
 
       /* Set user login identity cookie:
        */
@@ -351,7 +351,7 @@ namespace Tlabs.Identity.Intern {
             9: 1379411  22990
            10: 6635624 110594
         */
-        lock(this) {
+        lock (this) {
           LockoutUntil= Tlabs.App.TimeInfo.Now.AddSeconds(Math.Exp(Math.PI/2 * ++Count)); //exponential growth of lockout time
           return this;
         }
