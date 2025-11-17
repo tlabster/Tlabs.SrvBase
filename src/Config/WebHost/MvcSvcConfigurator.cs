@@ -56,9 +56,9 @@ namespace Tlabs.Config {
 
       var options= cfg.GetSection("options").Get<Options>();
       if (null != options?.applicationParts) foreach (var asmName in options.applicationParts) {
-        mvcBuilder.AddApplicationPart(Assembly.Load(asmName));
-        log.LogInformation("App. part added from: {part}", asmName);
-      }
+          mvcBuilder.AddApplicationPart(Assembly.Load(asmName));
+          log.LogInformation("App. part added from: {part}", asmName);
+        }
 
       /* Global JSON serializer options:
        */

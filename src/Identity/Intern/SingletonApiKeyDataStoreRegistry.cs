@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using Tlabs.Data;
 using Tlabs.Data.Entity;
 using Tlabs.Misc;
@@ -78,7 +80,7 @@ namespace Tlabs.Identity.Intern {
       //try to find token in cache and verify
       var token= cache[key];
       if (null != token) {
-        if (   token.ValidFrom <= App.TimeInfo.Now
+        if (token.ValidFrom <= App.TimeInfo.Now
             && (!token.ValidUntil.HasValue || token.ValidUntil > App.TimeInfo.Now)
             && token.ValidityState == ApiKey.Status.ACTIVE.ToString())
           return token;
