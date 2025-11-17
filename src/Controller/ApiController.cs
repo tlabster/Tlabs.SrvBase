@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +22,7 @@ namespace Tlabs.Server.Controller {
     ///<remarks>This default resolver is rather sketchy and could be inaccurate in many cases.
     ///Resolving more specific error cases needs to be done in a derived implementation.
     ///</remarks>
-    protected virtual string resolveError(Exception e, string? msg0= null) {
+    protected virtual string resolveError(Exception e, string? msg0 = null) {
       e.Source= ActionRoute;
       // var inner= e.InnerException;
       var code= StatusCodes.Status500InternalServerError;
@@ -31,7 +32,7 @@ namespace Tlabs.Server.Controller {
         case DataEntityNotFoundException nfe:
           code= StatusCodes.Status404NotFound;
           msg??= nfe.Message;
-        break;
+          break;
 
         case ArgumentNullException an:
           code= StatusCodes.Status400BadRequest;
@@ -41,39 +42,44 @@ namespace Tlabs.Server.Controller {
         case ArgumentOutOfRangeException re:
           code= StatusCodes.Status400BadRequest;
           msg??= re.SetMissingTemplateData("Value ({actualValue}) out of valid range for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
-        break;
+          break;
 
         case ArgumentException ae:
           code= StatusCodes.Status400BadRequest;
           msg??= ae.SetMissingTemplateData("Invalid value for parameter '{paramName}'", ae.ParamName ?? ae.Message).ResolvedMsgTemplate();
-        break;
+          break;
+
+        case PagedQueryException pe:
+          code= StatusCodes.Status400BadRequest;
+          msg??= pe.Message;
+          break;
 
         case KeyNotFoundException kn:
           code= StatusCodes.Status404NotFound;
           msg??= kn.Message;
-        break;
+          break;
 
         case InvalidOperationException io when io.Message.StartsWith("Sequence contains no"):
           code= StatusCodes.Status404NotFound;
           msg??= io.Message;
-        break;
+          break;
 
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
           msg??= ic.SetMissingTemplateData("Invalid parameter type ({type})", ic.Message).ResolvedMsgTemplate();
-        break;
+          break;
 
         case FormatException fe:
           code= StatusCodes.Status400BadRequest;
           msg??= fe.SetMissingTemplateData("Invalid parameter format ({format})", fe.Message).ResolvedMsgTemplate();
-        break;
+          break;
 
         default:
           if (null != e.InnerException)
             return resolveError(e.InnerException, msg ?? e.Message);
           msg= e.SetMissingTemplateData("Unsupported internal state - please check with log.").ResolvedMsgTemplate();
           log.LogError(e, "Error processing request ({msg}).", e.Message);
-        break;
+          break;
       }
 #pragma warning disable CA2254  //log generic message
       log.LogDebug(0, e, msg);
