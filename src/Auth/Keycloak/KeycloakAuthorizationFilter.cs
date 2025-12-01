@@ -56,7 +56,7 @@ namespace Tlabs.Server.Auth.Keycloak {
 
     private static void Deny(AuthorizationFilterContext ctx, string reason) {
       var err = new JsonResult(new { success = false, error = reason });
-      err.StatusCode = StatusCodes.Status403Forbidden;
+      err.StatusCode = StatusCodes.Status401Unauthorized;
       ctx.Result = err;
     }
 
