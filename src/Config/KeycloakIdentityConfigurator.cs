@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authentication;
 using Tlabs.Server.Auth.Keycloak;
 
 namespace Tlabs.Config {
-
   ///<summary>Configures Identity Framework.</summary>
   public class KeycloakIdentityConfigurator : IConfigurator<IServiceCollection> {
     readonly IDictionary<string, string> config;
@@ -28,15 +27,15 @@ namespace Tlabs.Config {
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log = App.Logger<KeycloakIdentityConfigurator>();
 
-      var authority = cfg["config:client:Authority"] ?? throw new ArgumentNullException("Client Authority not configured");
-      var audience = cfg["config:client:Audience"] ?? throw new ArgumentNullException("Client Audience not configured");
-      var requireHttpsMetadata = bool.TryParse(cfg["config:client:RequireHttpsMetadata"], out var reqHttps) ? reqHttps : throw new ArgumentNullException("Client RequireHttpsMetadata not configured");
+      var settings = cfg.GetSection("config:client").Get<KeycloakIdentityOptions>() ?? throw new ArgumentNullException("Could not map the Keycloak identity options");
+      ArgumentException.ThrowIfNullOrEmpty(settings.Authority);
+      ArgumentException.ThrowIfNullOrEmpty(settings.Audience);
 
       services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options => {
-          options.Authority = authority;
-          options.Audience = audience;
-          options.RequireHttpsMetadata = requireHttpsMetadata;
+          options.Authority = settings.Authority;
+          options.Audience = settings.Audience;
+          options.RequireHttpsMetadata = settings.RequireHttpsMetadata;
 
           options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters {
             ValidateIssuer = true,
@@ -44,6 +43,9 @@ namespace Tlabs.Config {
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             NameClaimType = "preferred_username",
+            ValidIssuer = settings.ValidIssuer,
+            ValidAudience = settings.ValidateAudiences == null || settings.ValidateAudiences.Count == 0 ? settings.Audience : null,
+            ValidAudiences = settings.ValidateAudiences,
             ClockSkew = TimeSpan.FromMinutes(2)
           };
         });
@@ -54,5 +56,13 @@ namespace Tlabs.Config {
       services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
       log.LogInformation("AspNetCore.Identity services added");
     }
+  }
+
+  internal class KeycloakIdentityOptions {
+    public string? Authority { get; set; }
+    public string? Audience { get; set; }
+    public string? ValidIssuer { get; set; }
+    public bool RequireHttpsMetadata { get; set; } = false;
+    public List<string> ValidateAudiences { get; set; } = [];
   }
 }
