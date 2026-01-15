@@ -20,7 +20,8 @@ namespace Tlabs.Server.Auth.Keycloak {
         var roles = seri.LoadObj(realmAccessClaim.Value) ?? new();
         if (roles.TryGetValue("roles", out var rolesElement)) {
           foreach (var role in rolesElement) {
-            identity.AddClaim(new Claim(identity.RoleClaimType, role));
+            if(!identity.HasClaim(identity.RoleClaimType, role))
+              identity.AddClaim(new Claim(identity.RoleClaimType, role));
           }
         }
       }
