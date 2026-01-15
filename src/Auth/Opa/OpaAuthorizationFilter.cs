@@ -41,7 +41,7 @@ namespace Tlabs.Server.Auth.Opa {
       var request = ctx.HttpContext.Request;
 
       var actionName = ctx.ActionDescriptor.DisplayName;
-      var path = (ctx.ActionDescriptor.AttributeRouteInfo?.Template ?? request.Path).ToLowerInvariant();
+      var path = request.Path.ToString().ToLowerInvariant();
 
       var input = new OpaInput {
         Resource = actionName,
