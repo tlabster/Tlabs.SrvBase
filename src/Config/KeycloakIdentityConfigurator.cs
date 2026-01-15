@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
 using Tlabs.Server.Auth.Keycloak;
+using Tlabs.Identity;
 
 namespace Tlabs.Config {
   ///<summary>Configures Identity Framework.</summary>
@@ -53,6 +54,7 @@ namespace Tlabs.Config {
       services.AddHttpClient();
 
       services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>(); //typically AddIdentity() already registers the accessor
+      services.AddSingleton<IIdentityAccessor, HttpContextIdentityAccessor>();
       services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
       log.LogInformation("AspNetCore.Identity services added");
     }

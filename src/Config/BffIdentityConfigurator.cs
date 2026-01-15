@@ -101,6 +101,7 @@ namespace Tlabs.Server.Config {
 
       services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>(); //typically AddIdentity() already registers the accessor
       services.AddSingleton<IIdentityAccessor, HttpContextIdentityAccessor>();
+      services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
     }
   }
 }

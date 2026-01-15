@@ -1,23 +1,17 @@
 ﻿using System;
 using System.Linq;
-using System.Net.Http;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc.Authorization;
 
 using Tlabs.Config;
-using Microsoft.AspNetCore.Server.HttpSys;
 using System.Security.Claims;
-using Tlabs.Server.Model;
 
 namespace Tlabs.Server.Auth.Opa {
   ///<summary>Authorization filter for Open Policy Agent.</summary>
@@ -41,8 +35,7 @@ namespace Tlabs.Server.Auth.Opa {
       var request = ctx.HttpContext.Request;
 
       var actionName = ctx.ActionDescriptor.DisplayName;
-      var path = request.Path.ToString().ToLowerInvariant();
-
+      var path = request.Path.ToString()[1..].ToLowerInvariant();
       var input = new OpaInput {
         Resource = actionName,
         Path = path.Split("/"),
