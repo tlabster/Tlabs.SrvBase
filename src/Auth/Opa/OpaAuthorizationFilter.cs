@@ -35,7 +35,7 @@ namespace Tlabs.Server.Auth.Opa {
       var request = ctx.HttpContext.Request;
 
       var actionName = ctx.ActionDescriptor.DisplayName;
-      var path = request.Path.ToString()[1..].ToLowerInvariant();
+      var path = request.Path.ToString().ToLowerInvariant().Trim('/');
       var input = new OpaInput {
         Resource = actionName,
         Path = path.Split("/"),
