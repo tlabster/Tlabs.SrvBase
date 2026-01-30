@@ -64,6 +64,11 @@ namespace Tlabs.Server.Controller {
           msg??= io.Message;
           break;
 
+        case OperationConflictException oc:
+          code= StatusCodes.Status409Conflict;
+          msg??= oc.Message;
+          break;
+
         case InvalidCastException ic:
           code= StatusCodes.Status400BadRequest;
           msg??= ic.SetMissingTemplateData("Invalid parameter type ({type})", ic.Message).ResolvedMsgTemplate();

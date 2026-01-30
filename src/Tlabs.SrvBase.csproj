@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <VersionPrefix>2.3.2</VersionPrefix>
-    <VersionSuffix>beta5</VersionSuffix>
+    <VersionSuffix>beta6</VersionSuffix>
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
