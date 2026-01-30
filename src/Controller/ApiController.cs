@@ -41,7 +41,9 @@ namespace Tlabs.Server.Controller {
 
         case ArgumentOutOfRangeException re:
           code= StatusCodes.Status400BadRequest;
-          msg??= re.SetMissingTemplateData("Value ({actualValue}) out of valid range for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
+          msg??= re.SetMissingTemplateData(
+            "Value ({actualValue}) out of valid range for parameter '{paramName}', expected: {expected}", 
+            re.ActualValue ?? "-?-", re.ParamName ?? re.Message, re.ParamName != null ? re.Message : "-?-").ResolvedMsgTemplate();
           break;
 
         case ArgumentException ae:
