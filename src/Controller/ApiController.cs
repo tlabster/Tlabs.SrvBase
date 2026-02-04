@@ -41,7 +41,9 @@ namespace Tlabs.Server.Controller {
 
         case ArgumentOutOfRangeException re:
           code= StatusCodes.Status400BadRequest;
-          msg??= re.SetMissingTemplateData("Value ({actualValue}) out of valid range for parameter '{paramName}'", re.ActualValue ?? "-?-", re.ParamName ?? re.Message).ResolvedMsgTemplate();
+          msg??= re.SetMissingTemplateData(
+            "Value ({actualValue}) out of valid range for parameter '{paramName}', expected: {expected}", 
+            re.ActualValue ?? "-?-", re.ParamName ?? re.Message, re.ParamName != null ? re.Message : "-?-").ResolvedMsgTemplate();
           break;
 
         case ArgumentException ae:
@@ -62,6 +64,11 @@ namespace Tlabs.Server.Controller {
         case InvalidOperationException io when io.Message.StartsWith("Sequence contains no"):
           code= StatusCodes.Status404NotFound;
           msg??= io.Message;
+          break;
+
+        case OperationConflictException oc:
+          code= StatusCodes.Status409Conflict;
+          msg??= oc.Message;
           break;
 
         case InvalidCastException ic:
