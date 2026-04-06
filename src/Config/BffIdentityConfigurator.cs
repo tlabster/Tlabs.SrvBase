@@ -37,11 +37,14 @@ namespace Tlabs.Server.Config {
 
       services.Configure<KeycloakConfig>(cfg.GetSection("config"));
 
-      var authority = cfg["config:client:Authority"] ?? throw new ArgumentNullException("Client Authority not configured");
-      var clientId = cfg["config:client:ClientId"] ?? throw new ArgumentNullException("Client ClientId not configured");
-      var clientSecret = cfg["config:client:ClientSecret"] ?? throw new ArgumentNullException("Client ClientSecret not configured");
-      var logoutRedirect = cfg["config:client:LogoutRedirect"] ?? throw new ArgumentNullException("Client LogoutRedirect not configured");
-      var requireHttpsMetadata = bool.TryParse(cfg["config:client:RequireHttpsMetadata"], out var reqHttps) ? reqHttps : throw new ArgumentNullException("Client RequireHttpsMetadata not configured");
+      var keycloakConfig = cfg.GetSection("config").Get<KeycloakConfig>() ?? throw new ArgumentException(nameof(KeycloakConfig));
+
+      if(keycloakConfig.Client?.BaseUrl == null || keycloakConfig.Client.Realm == null) throw new ArgumentNullException("Client BaseUrl or Realm not configured");
+      var authority = keycloakConfig.Client.Authority;
+      var clientId = keycloakConfig.Client?.ClientId ?? throw new ArgumentNullException("Client ClientId not configured");
+      var clientSecret = keycloakConfig.Client?.ClientSecret ?? throw new ArgumentNullException("Client ClientSecret not configured");
+      var logoutRedirect = keycloakConfig.Client?.LogoutRedirect ?? throw new ArgumentNullException("Client LogoutRedirect not configured");
+      var requireHttpsMetadata = keycloakConfig.Client?.RequireHttpsMetadata ?? throw new ArgumentNullException("Client RequireHttpsMetadata not configured");
 
       // OIDC
       services.AddAuthentication(options => {
