@@ -60,20 +60,6 @@ namespace Tlabs.Server.Auth.Keycloak {
       ctx.Result = err;
     }
 
-    ///<summary>Keycloak options.</summary>
-    public class Options {
-      ///<summary>Keycloak authority URL.</summary>
-      public string Authority { get; set; } = "";
-      ///<summary>Audience for Keycloak tokens.</summary>
-      public string Audience { get; set; } = "";
-      /// <summary>Client ID for service account</summary>
-      public string ClientId { get; set; } = "";
-      /// <summary>Client secret for service account</summary>
-      public string ClientSecret { get; set; } = "";
-      /// <summary>Interval to refresh the resource cache</summary>
-      public int SyncInterval { get; set; } = 300; //seconds
-    }
-
     /// <summary>Configurator</summary>
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>

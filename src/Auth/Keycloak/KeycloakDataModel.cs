@@ -31,7 +31,9 @@ namespace Tlabs.Server.Auth.Keycloak {
   }
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
   public class KeycloakClientConfig {
-    public string Authority { get; set; } = "";
+    public string BaseUrl { get; set; } = "";
+    public string Realm { get; set; } = "";
+    public string Authority { get { return $"{BaseUrl}/realms/{Realm}"; } }
     public string Audience { get; set; } = "";
     public string ClientId { get; set; } = "";
     public string ClientSecret { get; set; } = "";

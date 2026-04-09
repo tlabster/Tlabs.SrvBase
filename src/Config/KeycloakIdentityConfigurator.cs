@@ -60,11 +60,8 @@ namespace Tlabs.Config {
     }
   }
 
-  internal class KeycloakIdentityOptions {
-    public string? Authority { get; set; }
-    public string? Audience { get; set; }
+  internal class KeycloakIdentityOptions : KeycloakClientConfig {
     public string? ValidIssuer { get; set; }
-    public bool RequireHttpsMetadata { get; set; } = false;
     public List<string> ValidateAudiences { get; set; } = [];
   }
 }
