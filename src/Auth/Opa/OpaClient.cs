@@ -186,11 +186,14 @@ namespace Tlabs.Server.Auth.Opa {
     public class Configurator : IConfigurator<IServiceCollection> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection services, IConfiguration cfg) {
-        var config = cfg.GetSection("config");
-        services.Configure<OpaClientConfig>(config);
-        var uri = config["OpaUri"]?.TrimEnd('/') ?? "http://localhost:8181";
+
+        services.AddOptions<OpaClientConfig>().Bind(cfg.GetSection("config")).ValidateDataAnnotations();
+
+        var opaConfig = cfg.GetSection("config").Get<OpaClientConfig>() ?? throw new ArgumentException(nameof(OpaClientConfig));
+        var uri = new Uri(opaConfig.OpaUri);
+
         services.AddHttpClient(OpaHttpClientName, httpClient => {
-          httpClient.BaseAddress = new Uri(uri);
+          httpClient.BaseAddress = uri;
         });
         services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
         services.AddSingleton<IOpaClient, OpaClient>();

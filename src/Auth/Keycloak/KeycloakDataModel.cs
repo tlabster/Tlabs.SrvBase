@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Tlabs.Server.Auth.Keycloak {
   /// <summary>
@@ -31,7 +32,10 @@ namespace Tlabs.Server.Auth.Keycloak {
   }
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
   public class KeycloakClientConfig {
+    [Required]
+    [Url]
     public string BaseUrl { get; set; } = "";
+    [Required]
     public string Realm { get; set; } = "";
     public string Authority { get { return $"{BaseUrl}/realms/{Realm}"; } }
     public string Audience { get; set; } = "";

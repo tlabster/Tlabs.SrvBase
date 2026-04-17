@@ -34,8 +34,7 @@ namespace Tlabs.Server.Config {
     ///<inheritdoc/>
     public void AddTo(IServiceCollection services, IConfiguration cfg) {
       var log = App.Logger<BffIdentityConfigurator>();
-
-      services.Configure<KeycloakConfig>(cfg.GetSection("config"));
+      services.AddOptions<KeycloakConfig>().Bind(cfg.GetSection("config")).ValidateDataAnnotations();
 
       var keycloakConfig = cfg.GetSection("config").Get<KeycloakConfig>() ?? throw new ArgumentException(nameof(KeycloakConfig));
 
