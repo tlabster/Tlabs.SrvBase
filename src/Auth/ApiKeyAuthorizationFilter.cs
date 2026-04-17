@@ -61,7 +61,7 @@ namespace Tlabs.Server.Auth {
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
-        svcColl.Configure<Options>(cfg.GetSection("config"));
+        svcColl.AddOptions<Options>().Bind(cfg.GetSection("config")).ValidateDataAnnotations();
         svcColl.AddSingleton<ApiKeyAuthorizationFilter>();
         ApiKeyAuthorizationFilter.log.LogInformation("Service {s} added.", nameof(ApiKeyAuthorizationFilter));
       }

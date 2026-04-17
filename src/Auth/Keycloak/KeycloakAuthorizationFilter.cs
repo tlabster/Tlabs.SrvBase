@@ -64,7 +64,7 @@ namespace Tlabs.Server.Auth.Keycloak {
     public class Configurator : IConfigurator<IServiceCollection>, IConfigurator<IWebHostBuilder> {
       /// <inheritdoc/>
       public void AddTo(IServiceCollection svcColl, IConfiguration cfg) {
-        svcColl.Configure<KeycloakConfig>(cfg.GetSection("config"));
+        svcColl.AddOptions<KeycloakConfig>().Bind(cfg.GetSection("config")).ValidateDataAnnotations();
         svcColl.AddSingleton<IKeycloakTokenService, KeycloakTokenService>();
         svcColl.AddSingleton<KeycloakAuthorizationFilter>();
         log.LogInformation("Service {s} added.", nameof(KeycloakAuthorizationFilter));
